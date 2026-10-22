@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<checkstyle version="9.3">
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\adapter\in\messaging\ClaimEventKafkaConsumer.java">
+<error line="15" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+<error line="48" column="9" severity="warning" message="&apos;}&apos; at column 9 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+<error line="65" column="13" severity="warning" message="&apos;}&apos; at column 13 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+<error line="67" column="13" severity="warning" message="&apos;}&apos; at column 13 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+<error line="70" column="9" severity="warning" message="&apos;}&apos; at column 9 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+<error line="71" severity="warning" message="Line is longer than 120 characters (found 130)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
+<error line="108" column="9" severity="warning" message="&apos;}&apos; at column 9 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+<error line="137" column="9" severity="warning" message="&apos;}&apos; at column 9 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\adapter\in\web\AdminClaimResponseMapper.java">
+<error line="23" column="5" severity="warning" message="All overloaded methods should be placed next to each other. Placing non-overloaded methods in between overloaded methods with the same type is a violation. Previous overloaded method located at line &apos;18&apos;." source="com.puppycrawl.tools.checkstyle.checks.coding.OverloadMethodsDeclarationOrderCheck"/>
+<error line="24" severity="warning" message="Line is longer than 120 characters (found 128)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\adapter\in\web\AdminController.java">
+<error line="22" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+<error line="58" column="9" severity="warning" message="&apos;}&apos; at column 9 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+<error line="73" column="9" severity="warning" message="&apos;}&apos; at column 9 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+<error line="92" severity="warning" message="Line is longer than 120 characters (found 130)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
+<error line="96" column="9" severity="warning" message="&apos;}&apos; at column 9 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+<error line="106" severity="warning" message="Line is longer than 120 characters (found 121)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
+<error line="110" severity="warning" message="Line is longer than 120 characters (found 126)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
+<error line="115" column="9" severity="warning" message="&apos;}&apos; at column 9 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+<error line="125" severity="warning" message="Line is longer than 120 characters (found 134)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
+<error line="134" column="9" severity="warning" message="&apos;}&apos; at column 9 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+<error line="156" severity="warning" message="Line is longer than 120 characters (found 129)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
+<error line="158" column="9" severity="warning" message="&apos;}&apos; at column 9 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\adapter\in\web\AuthController.java">
+<error line="28" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+<error line="97" column="9" severity="warning" message="&apos;}&apos; at column 9 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\adapter\in\web\AuthExceptionHandler.java">
+<error line="14" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\adapter\in\web\ClaimResponseMapper.java">
+<error line="13" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\adapter\in\web\ClaimsController.java">
+<error line="17" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\adapter\in\web\CsrfController.java">
+<error line="10" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\adapter\in\web\ErrorTypeConstants.java">
+<error line="8" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\adapter\in\web\filters\CorrelationIdFilter.java">
+<error line="64" column="9" severity="warning" message="&apos;}&apos; at column 9 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\adapter\in\web\SecurityExceptionHandler.java">
+<error line="11" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\adapter\in\websocket\ClaimWebSocketHandler.java">
+<error line="22" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+<error line="138" column="21" severity="warning" message="&apos;}&apos; at column 21 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+<error line="174" column="9" severity="warning" message="&apos;}&apos; at column 9 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+<error line="178" column="9" severity="warning" message="&apos;}&apos; at column 9 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+<error line="198" column="9" severity="warning" message="&apos;}&apos; at column 9 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\adapter\in\websocket\WebSocketAuthInterceptor.java">
+<error line="18" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+<error line="49" column="9" severity="warning" message="&apos;}&apos; at column 9 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\adapter\in\websocket\WebSocketMessage.java">
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\adapter\out\claimsservice\ClaimsServiceAdapter.java">
+<error line="27" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+<error line="67" column="9" severity="warning" message="&apos;}&apos; at column 9 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+<error line="68" severity="warning" message="Line is longer than 120 characters (found 126)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
+<error line="85" column="17" severity="warning" message="&apos;}&apos; at column 17 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+<error line="86" severity="warning" message="Line is longer than 120 characters (found 135)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
+<error line="87" severity="warning" message="Line is longer than 120 characters (found 150)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
+<error line="104" column="13" severity="warning" message="&apos;}&apos; at column 13 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+<error line="121" column="9" severity="warning" message="&apos;}&apos; at column 9 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+<error line="127" column="21" severity="warning" message="&apos;}&apos; at column 21 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+<error line="128" severity="warning" message="Line is longer than 120 characters (found 154)." source="com.puppycrawl.tools.checkstyle.checks.sizes.LineLengthCheck"/>
+<error line="150" column="9" severity="warning" message="&apos;}&apos; at column 9 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+<error line="164" column="9" severity="warning" message="&apos;}&apos; at column 9 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+<error line="176" column="9" severity="warning" message="&apos;}&apos; at column 9 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\adapter\out\http\CorrelationIdInterceptor.java">
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\adapter\out\http\TracingInterceptor.java">
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\adapter\out\keycloak\KeycloakAdminAdapter.java">
+<error line="19" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\adapter\out\keycloak\KeycloakTokenAdapter.java">
+<error line="16" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+<error line="73" column="9" severity="warning" message="&apos;}&apos; at column 9 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\adapter\out\keycloak\ServiceAccountTokenProviderImpl.java">
+<error line="14" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\adapter\out\security\AuthenticationFacadeImpl.java">
+<error line="16" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\application\auth\AuthenticationFacade.java">
+<error line="5" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\application\auth\ClaimsServicePort.java">
+<error line="26" column="102" severity="warning" message="&apos;{&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAroundCheck"/>
+<error line="26" column="103" severity="warning" message="&apos;}&apos; is not preceded with whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAroundCheck"/>
+<error line="30" column="76" severity="warning" message="&apos;{&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAroundCheck"/>
+<error line="30" column="77" severity="warning" message="&apos;}&apos; is not preceded with whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAroundCheck"/>
+<error line="33" column="96" severity="warning" message="&apos;{&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAroundCheck"/>
+<error line="33" column="97" severity="warning" message="&apos;}&apos; is not preceded with whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAroundCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\application\auth\ExternalServiceException.java">
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\application\auth\InvalidCredentialsException.java">
+<error line="3" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\application\auth\KeycloakAdminPort.java">
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\application\auth\KeycloakTokenPort.java">
+<error line="3" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+<error line="11" column="104" severity="warning" message="&apos;{&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAroundCheck"/>
+<error line="11" column="105" severity="warning" message="&apos;}&apos; is not preceded with whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAroundCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\application\auth\LoginCommand.java">
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\application\auth\LoginResult.java">
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\application\auth\LoginUseCase.java">
+<error line="3" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\application\auth\LoginUseCaseImpl.java">
+<error line="11" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+<error line="51" column="9" severity="warning" message="&apos;}&apos; at column 9 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+<error line="78" column="9" severity="warning" message="&apos;}&apos; at column 9 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+<error line="102" column="72" severity="warning" message="&apos;{&apos; is not followed by whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAroundCheck"/>
+<error line="102" column="73" severity="warning" message="&apos;}&apos; is not preceded with whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAroundCheck"/>
+<error line="115" column="9" severity="warning" message="&apos;}&apos; at column 9 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\application\auth\LogoutUseCase.java">
+<error line="3" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\application\auth\LogoutUseCaseImpl.java">
+<error line="7" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+<error line="23" column="9" severity="warning" message="&apos;}&apos; at column 9 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+<error line="23" column="11" severity="warning" message="Catching &apos;RuntimeException&apos; is not allowed." source="com.puppycrawl.tools.checkstyle.checks.coding.IllegalCatchCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\application\auth\NoRoleException.java">
+<error line="3" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\application\auth\RefreshTokenResult.java">
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\application\auth\RefreshTokenUseCase.java">
+<error line="3" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\application\auth\RefreshTokenUseCaseImpl.java">
+<error line="5" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\application\auth\ServiceAccountTokenProvider.java">
+<error line="3" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\application\auth\SignupCommand.java">
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\application\auth\SignupResult.java">
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\application\auth\SignupUseCase.java">
+<error line="3" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\application\auth\SignupUseCaseImpl.java">
+<error line="5" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\application\auth\UnauthenticatedException.java">
+<error line="3" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\application\auth\UserAlreadyExistsException.java">
+<error line="3" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\BffServiceApplication.java">
+<error line="7" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+<error line="7" column="1" severity="warning" message="Utility classes should not have a public or default constructor." source="com.puppycrawl.tools.checkstyle.checks.design.HideUtilityClassConstructorCheck"/>
+<error line="10" column="1" severity="warning" message="Line contains a tab character." source="com.puppycrawl.tools.checkstyle.checks.whitespace.FileTabCharacterCheck"/>
+<error line="11" column="1" severity="warning" message="Line contains a tab character." source="com.puppycrawl.tools.checkstyle.checks.whitespace.FileTabCharacterCheck"/>
+<error line="12" column="1" severity="warning" message="Line contains a tab character." source="com.puppycrawl.tools.checkstyle.checks.whitespace.FileTabCharacterCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\config\ContractTestSecurityConfiguration.java">
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\config\CookieAuthenticationFilter.java">
+<error line="51" column="9" severity="warning" message="&apos;}&apos; at column 9 should be alone on a line." source="com.puppycrawl.tools.checkstyle.checks.blocks.RightCurlyCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\config\JacksonConfig.java">
+<error line="9" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\config\KeycloakConfig.java">
+<error line="9" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\config\RestClientConfig.java">
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\config\SchemathesisSecurityConfiguration.java">
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\config\SecurityConfig.java">
+<error line="33" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\config\WebSocketConfig.java">
+<error line="13" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\java\com\example\demo\config\ZipkinConfig.java">
+<error line="10" column="1" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocTypeCheck"/>
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\main\resources\application.properties">
+</file>
+<file name="C:\Users\mohan\chubbtakehometesting\demo-app-qa-main\code\bff-service\src\test\resources\testcontainers.properties">
+</file>
+</checkstyle>

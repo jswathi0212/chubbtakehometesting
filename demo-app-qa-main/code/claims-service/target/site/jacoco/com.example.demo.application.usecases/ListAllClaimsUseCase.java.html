@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ListAllClaimsUseCase.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">claims-service</a> &gt; <a href="index.source.html" class="el_package">com.example.demo.application.usecases</a> &gt; <span class="el_source">ListAllClaimsUseCase.java</span></div><h1>ListAllClaimsUseCase.java</h1><pre class="source lang-java linenums">package com.example.demo.application.usecases;
+
+import com.example.demo.domain.claim.Claim;
+import com.example.demo.domain.claim.ClaimRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+/**
+ * Use case for listing all claims with optional filtering.
+ * Admin-only operation - returns claims across all users.
+ * NO RBAC logic here (enforced at adapter layer).
+ */
+@Service
+@Transactional(readOnly = true)
+@RequiredArgsConstructor
+public class ListAllClaimsUseCase {
+
+    private final ClaimRepository claimRepository;
+
+    /**
+     * Executes the list all claims query with optional filters.
+     *
+     * @param query the query with optional status and userId filters
+     * @return list of claims sorted by createdAt DESC
+     */
+    public List&lt;Claim&gt; execute(ListAllClaimsQuery query) {
+<span class="fc bfc" id="L30" title="All 4 branches covered.">        if (query.statusFilter().isPresent() &amp;&amp; query.userIdFilter().isPresent()) {</span>
+<span class="fc" id="L31">            return claimRepository.findAllByStatusAndUserId(</span>
+<span class="fc" id="L32">                query.statusFilter().get(),</span>
+<span class="fc" id="L33">                query.userIdFilter().get()</span>
+            );
+<span class="fc bfc" id="L35" title="All 2 branches covered.">        } else if (query.statusFilter().isPresent()) {</span>
+<span class="fc" id="L36">            return claimRepository.findAllByStatus(query.statusFilter().get());</span>
+<span class="fc bfc" id="L37" title="All 2 branches covered.">        } else if (query.userIdFilter().isPresent()) {</span>
+<span class="fc" id="L38">            return claimRepository.findByUserId(query.userIdFilter().get());</span>
+        } else {
+<span class="fc" id="L40">            return claimRepository.findAll();</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

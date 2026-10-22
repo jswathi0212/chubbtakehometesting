@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContractTestSecurityConfiguration.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">claims-service</a> &gt; <a href="index.source.html" class="el_package">com.example.demo.config</a> &gt; <span class="el_source">ContractTestSecurityConfiguration.java</span></div><h1>ContractTestSecurityConfiguration.java</h1><pre class="source lang-java linenums">package com.example.demo.config;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.time.Instant;
+import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import org.springframework.core.annotation.Order;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+/**
+ * Security configuration for the contract-test validation stack.
+ *
+ * &lt;p&gt;Permits all requests without Keycloak authentication and injects a static test
+ * {@link JwtAuthenticationToken} so downstream code that reads the JWT can function
+ * without a real Keycloak instance.
+ *
+ * &lt;p&gt;SECURITY WARNING: This profile must NEVER be used in production or any deployed environment.
+ */
+@Configuration
+@Profile(&quot;contract-test&quot;)
+public class ContractTestSecurityConfiguration {
+
+    private static final Logger LOG =
+            LoggerFactory.getLogger(ContractTestSecurityConfiguration.class);
+
+    private static final String TEST_USER_SUB = &quot;550e8400-e29b-41d4-a716-446655440000&quot;;
+    private static final String TEST_TOKEN_VALUE = &quot;test-token-for-validation&quot;;
+
+    @Bean
+    @Order(1)
+    public SecurityFilterChain contractTestFilterChain(HttpSecurity http) throws Exception {
+        LOG.warn(&quot;CONTRACT-TEST PROFILE ACTIVE — all endpoints permit unauthenticated access&quot;);
+        http.csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(auth -&gt; auth.anyRequest().permitAll())
+                .oauth2ResourceServer(AbstractHttpConfigurer::disable)
+                .addFilterBefore(
+                        contractTestJwtInjectionFilter(), AnonymousAuthenticationFilter.class);
+        return http.build();
+    }
+
+    @Bean
+    public OncePerRequestFilter contractTestJwtInjectionFilter() {
+<span class="fc" id="L59">        return new OncePerRequestFilter() {</span>
+            @Override
+            protected void doFilterInternal(
+                    HttpServletRequest request,
+                    HttpServletResponse response,
+                    FilterChain filterChain)
+                    throws ServletException, IOException {
+<span class="fc bfc" id="L66" title="All 2 branches covered.">                if (SecurityContextHolder.getContext().getAuthentication() == null) {</span>
+<span class="fc" id="L67">                    Instant now = Instant.now();</span>
+<span class="fc" id="L68">                    Jwt jwt =</span>
+<span class="fc" id="L69">                            Jwt.withTokenValue(TEST_TOKEN_VALUE)</span>
+<span class="fc" id="L70">                                    .header(&quot;alg&quot;, &quot;none&quot;)</span>
+<span class="fc" id="L71">                                    .claim(&quot;sub&quot;, TEST_USER_SUB)</span>
+<span class="fc" id="L72">                                    .claim(&quot;iss&quot;, &quot;contract-test&quot;)</span>
+<span class="fc" id="L73">                                    .claim(</span>
+                                            &quot;realm_access&quot;,
+<span class="fc" id="L75">                                            java.util.Map.of(</span>
+                                                    &quot;roles&quot;,
+<span class="fc" id="L77">                                                    List.of(&quot;ADMIN&quot;, &quot;CLAIMANT&quot;)))</span>
+<span class="fc" id="L78">                                    .issuedAt(now)</span>
+<span class="fc" id="L79">                                    .expiresAt(now.plusSeconds(3600))</span>
+<span class="fc" id="L80">                                    .claim(&quot;scope&quot;, List.of(&quot;openid&quot;))</span>
+<span class="fc" id="L81">                                    .claim(&quot;preferred_username&quot;, &quot;contract-test-user&quot;)</span>
+<span class="fc" id="L82">                                    .build();</span>
+<span class="fc" id="L83">                    var authorities =</span>
+<span class="fc" id="L84">                            List.of(</span>
+                                    new SimpleGrantedAuthority(&quot;ROLE_ADMIN&quot;),
+                                    new SimpleGrantedAuthority(&quot;ROLE_CLAIMANT&quot;));
+<span class="fc" id="L87">                    var authentication =</span>
+                            new JwtAuthenticationToken(jwt, authorities, TEST_USER_SUB);
+<span class="fc" id="L89">                    var context = SecurityContextHolder.createEmptyContext();</span>
+<span class="fc" id="L90">                    context.setAuthentication(authentication);</span>
+<span class="fc" id="L91">                    SecurityContextHolder.setContext(context);</span>
+                }
+<span class="fc" id="L93">                filterChain.doFilter(request, response);</span>
+<span class="fc" id="L94">            }</span>
+        };
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

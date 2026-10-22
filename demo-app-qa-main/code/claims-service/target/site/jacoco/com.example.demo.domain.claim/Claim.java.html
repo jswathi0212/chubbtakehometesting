@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Claim.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">claims-service</a> &gt; <a href="index.source.html" class="el_package">com.example.demo.domain.claim</a> &gt; <span class="el_source">Claim.java</span></div><h1>Claim.java</h1><pre class="source lang-java linenums">package com.example.demo.domain.claim;
+
+import com.example.demo.domain.DomainEvent;
+import com.example.demo.domain.claim.events.ClaimStatusChanged;
+import com.example.demo.domain.claim.events.ClaimSubmitted;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
+
+public class Claim {
+
+<span class="fc" id="L17">    public static final BigDecimal MAX_CLAIM_AMOUNT = new BigDecimal(&quot;1000000&quot;);</span>
+
+    private UUID claimId;
+    private UUID userId;
+    private LocalDate incidentDate;
+    private String incidentLocation;
+    private String description;
+    private BigDecimal claimAmount;
+    private ClaimStatus status;
+    private Instant createdAt;
+    private Instant updatedAt;
+<span class="fc" id="L28">    private final List&lt;DomainEvent&gt; domainEvents = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L30">    private Claim() {</span>
+        // Used by reconstitute()
+<span class="fc" id="L32">    }</span>
+
+    /**
+     * Reconstruct a Claim from persisted state (no validation, no events).
+     *
+     * &lt;p&gt;&lt;b&gt;WARNING: FOR PERSISTENCE LAYER ONLY.&lt;/b&gt; This method bypasses all domain validation
+     * and does not publish domain events. It should ONLY be used by the infrastructure layer
+     * (e.g., ClaimPersistenceMapper) when reconstituting entities from the database.&lt;/p&gt;
+     *
+     * &lt;p&gt;For creating new claims, use the {@link #Claim(UUID, UUID, LocalDate, String, String, BigDecimal)}
+     * constructor which enforces business rules and publishes domain events.&lt;/p&gt;
+     *
+     * @param claimId the claim identifier
+     * @param userId the user who submitted the claim
+     * @param incidentDate the date of the incident
+     * @param incidentLocation where the incident occurred
+     * @param description details of the incident
+     * @param claimAmount the claimed amount
+     * @param status the current claim status
+     * @param createdAt when the claim was created
+     * @param updatedAt when the claim was last updated
+     * @return a reconstituted Claim aggregate with no validation
+     */
+    public static Claim reconstitute(UUID claimId, UUID userId, LocalDate incidentDate,
+                                     String incidentLocation, String description,
+                                     BigDecimal claimAmount, ClaimStatus status,
+                                     Instant createdAt, Instant updatedAt) {
+<span class="fc" id="L59">        Claim claim = new Claim();</span>
+<span class="fc" id="L60">        claim.claimId = claimId;</span>
+<span class="fc" id="L61">        claim.userId = userId;</span>
+<span class="fc" id="L62">        claim.incidentDate = incidentDate;</span>
+<span class="fc" id="L63">        claim.incidentLocation = incidentLocation;</span>
+<span class="fc" id="L64">        claim.description = description;</span>
+<span class="fc" id="L65">        claim.claimAmount = claimAmount;</span>
+<span class="fc" id="L66">        claim.status = status;</span>
+<span class="fc" id="L67">        claim.createdAt = createdAt;</span>
+<span class="fc" id="L68">        claim.updatedAt = updatedAt;</span>
+<span class="fc" id="L69">        return claim;</span>
+    }
+
+    public Claim(UUID claimId, UUID userId, LocalDate incidentDate,
+<span class="fc" id="L73">                 String incidentLocation, String description, BigDecimal claimAmount) {</span>
+<span class="fc" id="L74">        Objects.requireNonNull(claimId, &quot;claimId must not be null&quot;);</span>
+<span class="fc" id="L75">        Objects.requireNonNull(userId, &quot;userId must not be null&quot;);</span>
+<span class="fc" id="L76">        Objects.requireNonNull(incidentDate, &quot;incidentDate must not be null&quot;);</span>
+<span class="fc" id="L77">        Objects.requireNonNull(description, &quot;description must not be null&quot;);</span>
+<span class="fc" id="L78">        Objects.requireNonNull(claimAmount, &quot;claimAmount must not be null&quot;);</span>
+<span class="fc" id="L79">        Objects.requireNonNull(incidentLocation, &quot;incidentLocation must not be null&quot;);</span>
+
+<span class="fc bfc" id="L81" title="All 2 branches covered.">        if (incidentDate.isAfter(LocalDate.now())) {</span>
+<span class="fc" id="L82">            throw new InvalidClaimException(&quot;Incident date cannot be in the future&quot;);</span>
+        }
+
+<span class="fc" id="L85">        String trimmedDescription = description.trim();</span>
+<span class="pc bpc" id="L86" title="1 of 4 branches missed.">        if (trimmedDescription.length() &lt; 10 || trimmedDescription.length() &gt; 1000) {</span>
+<span class="fc" id="L87">            throw new InvalidClaimException(&quot;Description must be 10-1000 characters&quot;);</span>
+        }
+
+<span class="fc bfc" id="L90" title="All 2 branches covered.">        if (claimAmount.compareTo(BigDecimal.ZERO) &lt;= 0</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">                || claimAmount.compareTo(MAX_CLAIM_AMOUNT) &gt; 0) {</span>
+<span class="fc" id="L92">            throw new InvalidClaimException(&quot;Claim amount must be positive and &lt;= 1,000,000&quot;);</span>
+        }
+
+<span class="fc" id="L95">        String trimmedLocation = incidentLocation.trim();</span>
+<span class="pc bpc" id="L96" title="1 of 4 branches missed.">        if (trimmedLocation.length() &lt; 5 || trimmedLocation.length() &gt; 200) {</span>
+<span class="fc" id="L97">            throw new InvalidClaimException(&quot;Incident location required, 5-200 characters&quot;);</span>
+        }
+
+<span class="fc" id="L100">        this.claimId = claimId;</span>
+<span class="fc" id="L101">        this.userId = userId;</span>
+<span class="fc" id="L102">        this.incidentDate = incidentDate;</span>
+<span class="fc" id="L103">        this.incidentLocation = trimmedLocation;</span>
+<span class="fc" id="L104">        this.description = trimmedDescription;</span>
+<span class="fc" id="L105">        this.claimAmount = claimAmount;</span>
+<span class="fc" id="L106">        this.status = ClaimStatus.SUBMITTED;</span>
+<span class="fc" id="L107">        this.createdAt = Instant.now();</span>
+<span class="fc" id="L108">        this.updatedAt = this.createdAt;</span>
+
+<span class="fc" id="L110">        this.domainEvents.add(new ClaimSubmitted(</span>
+<span class="fc" id="L111">            UUID.randomUUID().toString(),</span>
+            claimId,
+            userId,
+            incidentDate,
+            claimAmount,
+<span class="fc" id="L116">            Instant.now()</span>
+        ));
+<span class="fc" id="L118">    }</span>
+
+    public void updateStatus(ClaimStatus newStatus) {
+<span class="fc bfc" id="L121" title="All 2 branches covered.">        if (!this.status.canTransitionTo(newStatus)) {</span>
+<span class="fc" id="L122">            throw new InvalidStatusTransitionException(</span>
+<span class="fc" id="L123">                String.format(&quot;Cannot transition from %s to %s&quot;, this.status, newStatus));</span>
+        }
+
+<span class="fc" id="L126">        ClaimStatus oldStatus = this.status;</span>
+<span class="fc" id="L127">        this.status = newStatus;</span>
+<span class="fc" id="L128">        this.updatedAt = Instant.now();</span>
+
+<span class="fc" id="L130">        this.domainEvents.add(new ClaimStatusChanged(</span>
+<span class="fc" id="L131">            UUID.randomUUID().toString(),</span>
+            this.claimId,
+            oldStatus,
+            newStatus,
+            this.userId,
+<span class="fc" id="L136">            Instant.now()</span>
+        ));
+<span class="fc" id="L138">    }</span>
+
+    public List&lt;DomainEvent&gt; getDomainEvents() {
+<span class="fc" id="L141">        return List.copyOf(domainEvents);</span>
+    }
+
+    public void clearEvents() {
+<span class="fc" id="L145">        domainEvents.clear();</span>
+<span class="fc" id="L146">    }</span>
+
+<span class="fc" id="L148">    public UUID getClaimId() { return claimId; }</span>
+<span class="fc" id="L149">    public UUID getUserId() { return userId; }</span>
+<span class="fc" id="L150">    public LocalDate getIncidentDate() { return incidentDate; }</span>
+<span class="fc" id="L151">    public String getIncidentLocation() { return incidentLocation; }</span>
+<span class="fc" id="L152">    public String getDescription() { return description; }</span>
+<span class="fc" id="L153">    public BigDecimal getClaimAmount() { return claimAmount; }</span>
+<span class="fc" id="L154">    public ClaimStatus getStatus() { return status; }</span>
+<span class="fc" id="L155">    public Instant getCreatedAt() { return createdAt; }</span>
+<span class="fc" id="L156">    public Instant getUpdatedAt() { return updatedAt; }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

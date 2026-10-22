@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UpdateClaimStatusUseCase.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">claims-service</a> &gt; <a href="index.source.html" class="el_package">com.example.demo.application.usecases</a> &gt; <span class="el_source">UpdateClaimStatusUseCase.java</span></div><h1>UpdateClaimStatusUseCase.java</h1><pre class="source lang-java linenums">package com.example.demo.application.usecases;
+
+import com.example.demo.domain.claim.Claim;
+import com.example.demo.domain.claim.ClaimNotFoundException;
+import com.example.demo.domain.claim.ClaimRepository;
+import com.example.demo.domain.claim.ClaimStatus;
+import com.example.demo.user.domain.UnauthorizedException;
+import com.example.demo.user.domain.UserId;
+import com.example.demo.user.domain.UserRole;
+import com.example.demo.user.domain.UserRepository;
+import io.micrometer.core.instrument.MeterRegistry;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@Transactional
+@RequiredArgsConstructor
+public class UpdateClaimStatusUseCase {
+
+<span class="fc" id="L25">    private static final Logger LOG = LoggerFactory.getLogger(UpdateClaimStatusUseCase.class);</span>
+
+    private final ClaimRepository claimRepository;
+    private final UserRepository userRepository;
+    private final MeterRegistry meterRegistry;
+    private final ApplicationEventPublisher eventPublisher;
+
+    @Value(&quot;${app.events.cdc-enabled:true}&quot;)
+    private boolean cdcEnabled;
+
+    public Claim execute(UpdateClaimStatusCommand command) {
+<span class="fc" id="L36">        var admin = userRepository.findById(UserId.of(command.adminUserId()))</span>
+<span class="fc" id="L37">            .orElseThrow(() -&gt; new UnauthorizedException(&quot;User not found or not authorized&quot;));</span>
+
+<span class="fc bfc" id="L39" title="All 2 branches covered.">        if (admin.getRole() != UserRole.ADMIN) {</span>
+<span class="fc" id="L40">            throw new UnauthorizedException(&quot;Only admin users can update claim status&quot;);</span>
+        }
+
+<span class="fc" id="L43">        Claim claim = claimRepository.findById(command.claimId())</span>
+<span class="fc" id="L44">            .orElseThrow(() -&gt; new ClaimNotFoundException(command.claimId()));</span>
+
+<span class="fc" id="L46">        ClaimStatus oldStatus = claim.getStatus();</span>
+<span class="fc" id="L47">        claim.updateStatus(command.newStatus());</span>
+
+<span class="fc" id="L49">        Claim updatedClaim = claimRepository.save(claim);</span>
+
+<span class="pc bpc" id="L51" title="1 of 2 branches missed.">        if (cdcEnabled) {</span>
+<span class="nc" id="L52">            LOG.info(&quot;CDC enabled — status change will be published by Debezium for claimId={}, {} -&gt; {}&quot;,</span>
+<span class="nc" id="L53">                    updatedClaim.getClaimId(), oldStatus, command.newStatus());</span>
+        } else {
+<span class="fc" id="L55">            LOG.info(&quot;CDC disabled — publishing {} event(s) directly for claimId={}, {} -&gt; {}&quot;,</span>
+<span class="fc" id="L56">                    claim.getDomainEvents().size(), updatedClaim.getClaimId(), oldStatus, command.newStatus());</span>
+<span class="fc" id="L57">            claim.getDomainEvents().forEach(eventPublisher::publishEvent);</span>
+<span class="fc" id="L58">            claim.clearEvents();</span>
+        }
+
+<span class="fc" id="L61">        meterRegistry.counter(&quot;claims.status.changed&quot;,</span>
+<span class="fc" id="L62">                &quot;oldStatus&quot;, oldStatus.name(),</span>
+<span class="fc" id="L63">                &quot;newStatus&quot;, command.newStatus().name(),</span>
+<span class="fc" id="L64">                &quot;adminUserId&quot;, command.adminUserId().toString()</span>
+<span class="fc" id="L65">        ).increment();</span>
+
+<span class="fc" id="L67">        return updatedClaim;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

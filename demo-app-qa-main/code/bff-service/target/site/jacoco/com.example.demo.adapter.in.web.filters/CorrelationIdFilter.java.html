@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CorrelationIdFilter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bff-service</a> &gt; <a href="index.source.html" class="el_package">com.example.demo.adapter.in.web.filters</a> &gt; <span class="el_source">CorrelationIdFilter.java</span></div><h1>CorrelationIdFilter.java</h1><pre class="source lang-java linenums">package com.example.demo.adapter.in.web.filters;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.MDC;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+import java.util.UUID;
+
+/**
+ * Filter that manages correlation IDs for distributed tracing.
+ *
+ * &lt;p&gt;Responsibilities:
+ * &lt;ul&gt;
+ *   &lt;li&gt;Checks for existing X-Correlation-ID header in incoming requests&lt;/li&gt;
+ *   &lt;li&gt;Generates new UUID if correlation ID is missing&lt;/li&gt;
+ *   &lt;li&gt;Stores correlation ID in MDC (Mapped Diagnostic Context) for automatic log enrichment&lt;/li&gt;
+ *   &lt;li&gt;Adds X-Correlation-ID header to response for client tracking&lt;/li&gt;
+ *   &lt;li&gt;Ensures MDC cleanup after request completes&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;MDC Key: &quot;correlationId&quot;
+ * &lt;p&gt;HTTP Header: &quot;X-Correlation-ID&quot;
+ *
+ * @see org.slf4j.MDC
+ */
+@Component
+@Order(Ordered.HIGHEST_PRECEDENCE)
+<span class="fc" id="L35">public class CorrelationIdFilter extends OncePerRequestFilter {</span>
+
+    private static final String CORRELATION_ID_HEADER = &quot;X-Correlation-ID&quot;;
+    private static final String CORRELATION_ID_MDC_KEY = &quot;correlationId&quot;;
+
+    @Override
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain) throws ServletException, IOException {
+
+        try {
+            // Check for existing correlation ID in request header
+<span class="fc" id="L48">            String correlationId = request.getHeader(CORRELATION_ID_HEADER);</span>
+
+            // Generate new UUID if correlation ID is missing
+<span class="fc bfc" id="L51" title="All 4 branches covered.">            if (correlationId == null || correlationId.isBlank()) {</span>
+<span class="fc" id="L52">                correlationId = UUID.randomUUID().toString();</span>
+            }
+
+            // Store correlation ID in MDC for automatic inclusion in all log statements
+<span class="fc" id="L56">            MDC.put(CORRELATION_ID_MDC_KEY, correlationId);</span>
+
+            // Add correlation ID to response header for client tracking
+<span class="fc" id="L59">            response.setHeader(CORRELATION_ID_HEADER, correlationId);</span>
+
+            // Continue filter chain
+<span class="fc" id="L62">            filterChain.doFilter(request, response);</span>
+
+        } finally {
+            // CRITICAL: Clear MDC to prevent thread-local memory leak
+            // (Tomcat/Jetty reuse threads from pool)
+<span class="fc" id="L67">            MDC.clear();</span>
+        }
+<span class="fc" id="L69">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

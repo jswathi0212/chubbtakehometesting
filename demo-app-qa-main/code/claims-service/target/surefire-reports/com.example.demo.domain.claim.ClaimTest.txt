@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.example.demo.domain.claim.ClaimTest
+-------------------------------------------------------------------------------
+Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.151 s -- in com.example.demo.domain.claim.ClaimTest

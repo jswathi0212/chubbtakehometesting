@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DashboardStatsCache.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">claims-service</a> &gt; <a href="index.source.html" class="el_package">com.example.demo.adapter.out.cache</a> &gt; <span class="el_source">DashboardStatsCache.java</span></div><h1>DashboardStatsCache.java</h1><pre class="source lang-java linenums">package com.example.demo.adapter.out.cache;
+
+import com.example.demo.domain.dashboard.DashboardStats;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.stereotype.Component;
+
+import java.time.Duration;
+import java.util.Optional;
+
+/**
+ * Redis cache adapter for dashboard statistics.
+ * Implements graceful degradation: if Redis is unavailable,
+ * returns empty Optional instead of throwing exceptions.
+ */
+@Component
+public class DashboardStatsCache {
+
+<span class="fc" id="L20">    private static final Logger LOG = LoggerFactory.getLogger(DashboardStatsCache.class);</span>
+    private static final String CACHE_KEY = &quot;dashboard:stats&quot;;
+
+    private final RedisTemplate&lt;String, DashboardStats&gt; redisTemplate;
+
+<span class="fc" id="L25">    public DashboardStatsCache(RedisTemplate&lt;String, DashboardStats&gt; redisTemplate) {</span>
+<span class="fc" id="L26">        this.redisTemplate = redisTemplate;</span>
+<span class="fc" id="L27">    }</span>
+
+    /**
+     * Retrieves dashboard stats from cache.
+     *
+     * @return Optional containing cached stats, or empty if cache miss or Redis unavailable
+     */
+    public Optional&lt;DashboardStats&gt; get() {
+        try {
+<span class="fc" id="L36">            DashboardStats stats = redisTemplate.opsForValue().get(CACHE_KEY);</span>
+<span class="fc bfc" id="L37" title="All 2 branches covered.">            if (stats != null) {</span>
+<span class="fc" id="L38">                LOG.debug(&quot;Cache HIT for key: {}&quot;, CACHE_KEY);</span>
+<span class="fc" id="L39">                return Optional.of(stats);</span>
+            }
+<span class="fc" id="L41">            LOG.debug(&quot;Cache MISS for key: {}&quot;, CACHE_KEY);</span>
+<span class="fc" id="L42">            return Optional.empty();</span>
+<span class="fc" id="L43">        } catch (RuntimeException exception) {</span>
+<span class="fc" id="L44">            LOG.warn(&quot;Redis unavailable, falling back to database. Error: {}&quot;, exception.getMessage());</span>
+<span class="fc" id="L45">            return Optional.empty();</span>
+        }
+    }
+
+    /**
+     * Stores dashboard stats in cache with TTL.
+     *
+     * @param stats the statistics to cache
+     * @param ttlSeconds time-to-live in seconds
+     */
+    public void put(DashboardStats stats, long ttlSeconds) {
+        try {
+<span class="fc" id="L57">            redisTemplate.opsForValue().set(CACHE_KEY, stats, Duration.ofSeconds(ttlSeconds));</span>
+<span class="fc" id="L58">            LOG.debug(&quot;Cached dashboard stats with TTL: {}s&quot;, ttlSeconds);</span>
+<span class="fc" id="L59">        } catch (RuntimeException exception) {</span>
+<span class="fc" id="L60">            LOG.warn(&quot;Failed to cache dashboard stats. Error: {}&quot;, exception.getMessage());</span>
+<span class="fc" id="L61">        }</span>
+<span class="fc" id="L62">    }</span>
+
+    /**
+     * Manually evicts cached dashboard stats.
+     */
+    public void evict() {
+        try {
+<span class="fc" id="L69">            Boolean deleted = redisTemplate.delete(CACHE_KEY);</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">            if (Boolean.TRUE.equals(deleted)) {</span>
+<span class="fc" id="L71">                LOG.info(&quot;Cache evicted for key: {}&quot;, CACHE_KEY);</span>
+            }
+<span class="fc" id="L73">        } catch (RuntimeException exception) {</span>
+<span class="fc" id="L74">            LOG.warn(&quot;Failed to evict cache. Error: {}&quot;, exception.getMessage());</span>
+<span class="fc" id="L75">        }</span>
+<span class="fc" id="L76">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

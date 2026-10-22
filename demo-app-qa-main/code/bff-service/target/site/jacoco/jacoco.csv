@@ -1,0 +1,48 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+bff-service,com.example.demo.adapter.out.http,CorrelationIdInterceptor,0,29,0,4,0,9,0,4,0,2
+bff-service,com.example.demo.adapter.out.http,TracingInterceptor,0,36,0,2,0,10,0,3,0,2
+bff-service,com.example.demo.adapter.in.websocket,WebSocketAuthInterceptor,0,166,3,21,0,43,3,16,0,7
+bff-service,com.example.demo.adapter.in.websocket,WebSocketMessage,0,21,0,0,0,1,0,1,0,1
+bff-service,com.example.demo.adapter.in.websocket,ClaimWebSocketHandler,6,458,2,38,2,108,2,46,0,28
+bff-service,com.example.demo.adapter.out.claimsservice,ClaimsServiceAdapter,66,390,3,13,14,101,2,23,0,17
+bff-service,com.example.demo.adapter.out.security,AuthenticationFacadeImpl,0,94,0,4,0,22,0,11,0,9
+bff-service,com.example.demo.adapter.out.keycloak,KeycloakTokenAdapter,0,133,0,4,0,39,0,7,0,5
+bff-service,com.example.demo.adapter.out.keycloak,KeycloakAdminAdapter,0,168,0,8,0,37,0,10,0,6
+bff-service,com.example.demo.adapter.out.keycloak,ServiceAccountTokenProviderImpl,0,125,1,11,0,32,1,9,0,4
+bff-service,com.example.demo.config,CookieAuthenticationFilter.new HttpServletRequestWrapper() {...},0,19,0,2,0,4,0,3,0,2
+bff-service,com.example.demo.config,CookieAuthenticationFilter,0,57,0,6,0,18,0,7,0,4
+bff-service,com.example.demo.config,ContractTestSecurityConfiguration.new OncePerRequestFilter() {...},0,70,0,2,0,24,0,3,0,2
+bff-service,com.example.demo.config,SchemathesisSecurityConfiguration.new OncePerRequestFilter() {...},70,0,2,0,23,0,3,0,2,0
+bff-service,com.example.demo.application.auth,LoginUseCaseImpl.UserDetails,0,12,0,0,0,1,0,1,0,1
+bff-service,com.example.demo.application.auth,InvalidCredentialsException,0,9,0,0,0,4,0,2,0,2
+bff-service,com.example.demo.application.auth,LoginResult,0,52,0,0,0,9,0,1,0,1
+bff-service,com.example.demo.application.auth,NoRoleException,0,4,0,0,0,2,0,1,0,1
+bff-service,com.example.demo.application.auth,ExternalServiceException,0,40,0,0,0,7,0,3,0,3
+bff-service,com.example.demo.application.auth,SignupCommand,0,75,0,10,0,17,0,7,0,2
+bff-service,com.example.demo.application.auth,LoginCommand,0,17,0,0,0,4,0,1,0,1
+bff-service,com.example.demo.application.auth,UnauthenticatedException,0,4,0,0,0,2,0,1,0,1
+bff-service,com.example.demo.application.auth,RefreshTokenResult,0,17,0,0,0,4,0,1,0,1
+bff-service,com.example.demo.application.auth,KeycloakTokenPort.TokenResponse,0,15,0,0,0,1,0,1,0,1
+bff-service,com.example.demo.application.auth,LogoutUseCaseImpl,0,21,0,0,0,9,0,3,0,3
+bff-service,com.example.demo.application.auth,UserAlreadyExistsException,0,20,0,0,0,7,0,3,0,3
+bff-service,com.example.demo.application.auth,ClaimsServicePort.UserRecord,0,18,0,0,0,1,0,1,0,1
+bff-service,com.example.demo.application.auth,SignupResult,0,38,0,0,0,7,0,1,0,1
+bff-service,com.example.demo.application.auth,ClaimsServicePort.ClaimRecord,0,30,0,0,0,1,0,1,0,1
+bff-service,com.example.demo.application.auth,ClaimsServicePort.ClaimSummaryRecord,0,21,0,0,0,1,0,1,0,1
+bff-service,com.example.demo.application.auth,SignupUseCaseImpl,0,44,0,0,0,17,0,2,0,2
+bff-service,com.example.demo.application.auth,LoginUseCaseImpl,20,185,2,10,6,49,2,10,0,6
+bff-service,com.example.demo.application.auth,RefreshTokenUseCaseImpl,0,19,0,0,0,5,0,2,0,2
+bff-service,com.example.demo.adapter.in.web,ClaimResponseMapper,0,11,0,2,0,2,0,3,0,2
+bff-service,com.example.demo.adapter.in.web,AdminClaimResponseMapper,0,8,0,2,0,1,0,2,0,1
+bff-service,com.example.demo.adapter.in.web,SecurityExceptionHandler,0,41,0,0,0,12,0,3,0,3
+bff-service,com.example.demo.adapter.in.web,ClaimsController,0,83,0,0,0,22,0,4,0,4
+bff-service,com.example.demo.adapter.in.web,AdminController,0,302,0,18,0,76,0,19,0,10
+bff-service,com.example.demo.adapter.in.web,AuthExceptionHandler,0,80,0,0,0,21,0,5,0,5
+bff-service,com.example.demo.adapter.in.web,ErrorTypeConstants,0,31,0,0,0,8,0,6,0,6
+bff-service,com.example.demo.adapter.in.web,AuthController,4,291,1,7,1,89,1,17,0,14
+bff-service,com.example.demo.adapter.in.web,CsrfController,0,11,0,0,0,4,0,2,0,2
+bff-service,com.example.demo.adapter.in.web.filters,CorrelationIdFilter,0,28,0,4,0,9,0,4,0,2
+bff-service,com.example.demo.adapter.in.messaging,ClaimEventKafkaConsumer,0,318,1,18,0,71,1,17,0,8
+bff-service,org.openapitools.configuration,EnumConverterConfiguration,13,0,0,0,3,0,3,0,3,0
+bff-service,org.openapitools.configuration,EnumConverterConfiguration.new Converter() {...},6,0,0,0,2,0,2,0,2,0
+bff-service,org.openapitools.configuration,EnumConverterConfiguration.new Converter() {...},6,0,0,0,2,0,2,0,2,0

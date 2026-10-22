@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClaimRepositoryAdapter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">claims-service</a> &gt; <a href="index.source.html" class="el_package">com.example.demo.adapter.out.persistence</a> &gt; <span class="el_source">ClaimRepositoryAdapter.java</span></div><h1>ClaimRepositoryAdapter.java</h1><pre class="source lang-java linenums">package com.example.demo.adapter.out.persistence;
+
+import com.example.demo.domain.claim.Claim;
+import com.example.demo.domain.claim.ClaimRepository;
+import com.example.demo.domain.claim.ClaimStatus;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
+
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
+/**
+ * JPA implementation of the ClaimRepository domain interface.
+ *
+ * &lt;p&gt;This adapter bridges the domain layer (pure Java) with the infrastructure layer (JPA/Hibernate)
+ * by mapping between domain {@link Claim} aggregates and JPA {@link ClaimEntity} entities.&lt;/p&gt;
+ *
+ * &lt;p&gt;&lt;b&gt;Concurrency Note:&lt;/b&gt; This implementation does not use optimistic locking (@Version).
+ * For this training application with low concurrency requirements, last-write-wins semantics
+ * are acceptable. In production systems with high concurrent updates, consider adding @Version
+ * to ClaimEntity for optimistic locking and handling OptimisticLockingFailureException.&lt;/p&gt;
+ */
+@Repository
+@RequiredArgsConstructor
+public class ClaimRepositoryAdapter implements ClaimRepository {
+
+    private final ClaimJpaRepository jpaRepository;
+    private final ClaimPersistenceMapper mapper;
+
+    @Override
+    public Claim save(Claim claim) {
+<span class="fc" id="L35">        ClaimEntity entity = mapper.toEntity(claim);</span>
+<span class="fc" id="L36">        ClaimEntity saved = jpaRepository.save(entity);</span>
+<span class="fc" id="L37">        return mapper.toDomain(saved);</span>
+    }
+
+    @Override
+    public Optional&lt;Claim&gt; findById(UUID claimId) {
+<span class="fc" id="L42">        return jpaRepository.findById(claimId)</span>
+<span class="fc" id="L43">                .map(mapper::toDomain);</span>
+    }
+
+    @Override
+    public List&lt;Claim&gt; findByUserId(UUID userId) {
+<span class="fc" id="L48">        return jpaRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()</span>
+<span class="fc" id="L49">                .map(mapper::toDomain)</span>
+<span class="fc" id="L50">                .toList();</span>
+    }
+
+    @Override
+    public List&lt;Claim&gt; findAll() {
+<span class="fc" id="L55">        return jpaRepository.findAll().stream()</span>
+<span class="fc" id="L56">                .map(mapper::toDomain)</span>
+<span class="fc" id="L57">                .toList();</span>
+    }
+
+    @Override
+    public List&lt;Claim&gt; findAllByStatus(ClaimStatus status) {
+<span class="fc" id="L62">        return jpaRepository.findByStatus(status).stream()</span>
+<span class="fc" id="L63">                .map(mapper::toDomain)</span>
+<span class="fc" id="L64">                .toList();</span>
+    }
+
+    @Override
+    public List&lt;Claim&gt; findAllByStatusAndUserId(ClaimStatus status, UUID userId) {
+<span class="fc" id="L69">        return jpaRepository.findByStatusAndUserId(status, userId).stream()</span>
+<span class="fc" id="L70">                .map(mapper::toDomain)</span>
+<span class="fc" id="L71">                .toList();</span>
+    }
+
+    @Override
+    public boolean existsById(UUID claimId) {
+<span class="fc" id="L76">        return jpaRepository.existsById(claimId);</span>
+    }
+
+    @Override
+    public long count() {
+<span class="fc" id="L81">        return jpaRepository.count();</span>
+    }
+
+    @Override
+    public long countByStatus(ClaimStatus status) {
+<span class="fc" id="L86">        return jpaRepository.countByStatus(status);</span>
+    }
+
+    @Override
+    public Map&lt;ClaimStatus, Long&gt; countGroupedByStatus() {
+<span class="fc" id="L91">        Map&lt;ClaimStatus, Long&gt; result = new EnumMap&lt;&gt;(ClaimStatus.class);</span>
+<span class="fc bfc" id="L92" title="All 2 branches covered.">        for (Object[] row : jpaRepository.countGroupedByStatus()) {</span>
+<span class="fc" id="L93">            ClaimStatus status = (ClaimStatus) row[0];</span>
+<span class="fc" id="L94">            Long count = (Long) row[1];</span>
+<span class="fc" id="L95">            result.put(status, count);</span>
+<span class="fc" id="L96">        }</span>
+<span class="fc" id="L97">        return result;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

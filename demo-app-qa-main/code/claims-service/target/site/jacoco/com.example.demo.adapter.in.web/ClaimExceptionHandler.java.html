@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClaimExceptionHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">claims-service</a> &gt; <a href="index.source.html" class="el_package">com.example.demo.adapter.in.web</a> &gt; <span class="el_source">ClaimExceptionHandler.java</span></div><h1>ClaimExceptionHandler.java</h1><pre class="source lang-java linenums">package com.example.demo.adapter.in.web;
+
+import com.example.demo.application.exceptions.UnauthorizedClaimAccessException;
+import com.example.demo.application.exceptions.UserNotFoundException;
+import com.example.demo.domain.claim.ClaimNotFoundException;
+import com.example.demo.domain.claim.InvalidClaimException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+@RestControllerAdvice
+public class ClaimExceptionHandler {
+
+    private final ErrorTypeConstants errorTypes;
+
+<span class="fc" id="L17">    public ClaimExceptionHandler(ErrorTypeConstants errorTypes) {</span>
+<span class="fc" id="L18">        this.errorTypes = errorTypes;</span>
+<span class="fc" id="L19">    }</span>
+
+    @ExceptionHandler(UserNotFoundException.class)
+    public ProblemDetail handleUserNotFound(UserNotFoundException exception) {
+<span class="fc" id="L23">        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(</span>
+<span class="fc" id="L24">                HttpStatus.BAD_REQUEST, exception.getMessage());</span>
+<span class="fc" id="L25">        problemDetail.setTitle(&quot;Validation Error&quot;);</span>
+<span class="fc" id="L26">        problemDetail.setType(errorTypes.validationError());</span>
+<span class="fc" id="L27">        return problemDetail;</span>
+    }
+
+    @ExceptionHandler(InvalidClaimException.class)
+    public ProblemDetail handleInvalidClaim(InvalidClaimException exception) {
+<span class="fc" id="L32">        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(</span>
+<span class="fc" id="L33">                HttpStatus.BAD_REQUEST, exception.getMessage());</span>
+<span class="fc" id="L34">        problemDetail.setTitle(&quot;Validation Error&quot;);</span>
+<span class="fc" id="L35">        problemDetail.setType(errorTypes.validationError());</span>
+<span class="fc" id="L36">        return problemDetail;</span>
+    }
+
+    @ExceptionHandler(ClaimNotFoundException.class)
+    public ProblemDetail handleClaimNotFound(ClaimNotFoundException exception) {
+<span class="fc" id="L41">        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(</span>
+<span class="fc" id="L42">                HttpStatus.NOT_FOUND, exception.getMessage());</span>
+<span class="fc" id="L43">        problemDetail.setTitle(&quot;Not Found&quot;);</span>
+<span class="fc" id="L44">        problemDetail.setType(errorTypes.notFound());</span>
+<span class="fc" id="L45">        return problemDetail;</span>
+    }
+
+    @ExceptionHandler(UnauthorizedClaimAccessException.class)
+    public ProblemDetail handleUnauthorizedClaimAccess(UnauthorizedClaimAccessException exception) {
+<span class="fc" id="L50">        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(</span>
+<span class="fc" id="L51">                HttpStatus.FORBIDDEN, exception.getMessage());</span>
+<span class="fc" id="L52">        problemDetail.setTitle(&quot;Forbidden&quot;);</span>
+<span class="fc" id="L53">        problemDetail.setType(errorTypes.forbidden());</span>
+<span class="fc" id="L54">        return problemDetail;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

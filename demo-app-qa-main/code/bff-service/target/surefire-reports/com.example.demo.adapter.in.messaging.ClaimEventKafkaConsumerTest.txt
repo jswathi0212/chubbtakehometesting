@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.example.demo.adapter.in.messaging.ClaimEventKafkaConsumerTest
+-------------------------------------------------------------------------------
+Tests run: 17, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 25.70 s -- in com.example.demo.adapter.in.messaging.ClaimEventKafkaConsumerTest

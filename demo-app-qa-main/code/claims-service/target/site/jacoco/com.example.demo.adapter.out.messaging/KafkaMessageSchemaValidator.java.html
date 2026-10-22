@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>KafkaMessageSchemaValidator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">claims-service</a> &gt; <a href="index.source.html" class="el_package">com.example.demo.adapter.out.messaging</a> &gt; <span class="el_source">KafkaMessageSchemaValidator.java</span></div><h1>KafkaMessageSchemaValidator.java</h1><pre class="source lang-java linenums">package com.example.demo.adapter.out.messaging;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.networknt.schema.JsonSchema;
+import com.networknt.schema.JsonSchemaFactory;
+import com.networknt.schema.SchemaValidatorsConfig;
+import com.networknt.schema.SpecVersion;
+import com.networknt.schema.ValidationMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+
+@Component
+public class KafkaMessageSchemaValidator {
+
+<span class="fc" id="L25">    private static final Logger LOG = LoggerFactory.getLogger(KafkaMessageSchemaValidator.class);</span>
+
+    private final ObjectMapper objectMapper;
+    private final boolean enabled;
+<span class="fc" id="L29">    private final Map&lt;String, JsonSchema&gt; schemaCache = new ConcurrentHashMap&lt;&gt;();</span>
+
+    public KafkaMessageSchemaValidator(
+            ObjectMapper objectMapper,
+<span class="fc" id="L33">            @Value(&quot;${kafka.producer.schema-validation.enabled:true}&quot;) boolean enabled) {</span>
+<span class="fc" id="L34">        this.objectMapper = objectMapper;</span>
+<span class="fc" id="L35">        this.enabled = enabled;</span>
+<span class="fc" id="L36">    }</span>
+
+    public void validate(String jsonPayload, String schemaName) {
+<span class="fc bfc" id="L39" title="All 2 branches covered.">        if (!enabled) {</span>
+<span class="fc" id="L40">            LOG.info(&quot;Kafka schema validation DISABLED — skipping for {}&quot;, schemaName);</span>
+<span class="fc" id="L41">            return;</span>
+        }
+<span class="fc" id="L43">        LOG.info(&quot;Kafka schema validation ENABLED — validating {}&quot;, schemaName);</span>
+
+<span class="fc" id="L45">        JsonSchema schema = schemaCache.computeIfAbsent(schemaName, this::loadSchema);</span>
+        try {
+<span class="fc" id="L47">            JsonNode jsonNode = objectMapper.readTree(jsonPayload);</span>
+<span class="fc" id="L48">            Set&lt;ValidationMessage&gt; errors = schema.validate(jsonNode);</span>
+<span class="fc bfc" id="L49" title="All 2 branches covered.">            if (!errors.isEmpty()) {</span>
+<span class="fc" id="L50">                String errorDetails = errors.stream()</span>
+<span class="fc" id="L51">                        .map(ValidationMessage::getMessage)</span>
+<span class="fc" id="L52">                        .collect(Collectors.joining(&quot;; &quot;));</span>
+<span class="fc" id="L53">                throw new KafkaMessageValidationException(</span>
+                        &quot;Kafka message failed schema validation for &quot; + schemaName + &quot;: &quot; + errorDetails);
+            }
+<span class="fc" id="L56">        } catch (IOException exception) {</span>
+<span class="fc" id="L57">            throw new KafkaMessageValidationException(</span>
+                    &quot;Failed to parse JSON for schema validation: &quot; + schemaName, exception);
+<span class="fc" id="L59">        }</span>
+<span class="fc" id="L60">    }</span>
+
+    private JsonSchema loadSchema(String schemaName) {
+<span class="fc" id="L63">        String schemaPath = &quot;asyncapi/schemas/&quot; + schemaName + &quot;.json&quot;;</span>
+<span class="fc" id="L64">        try (InputStream inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(schemaPath)) {</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">            if (inputStream == null) {</span>
+<span class="fc" id="L66">                throw new KafkaMessageValidationException(</span>
+                        &quot;Schema file not found on classpath: &quot; + schemaPath);
+            }
+<span class="fc" id="L69">            JsonSchemaFactory factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012);</span>
+<span class="fc" id="L70">            SchemaValidatorsConfig config = SchemaValidatorsConfig.builder().build();</span>
+<span class="fc" id="L71">            return factory.getSchema(inputStream, config);</span>
+<span class="nc" id="L72">        } catch (IOException exception) {</span>
+<span class="nc" id="L73">            throw new KafkaMessageValidationException(</span>
+                    &quot;Failed to load schema: &quot; + schemaPath, exception);
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

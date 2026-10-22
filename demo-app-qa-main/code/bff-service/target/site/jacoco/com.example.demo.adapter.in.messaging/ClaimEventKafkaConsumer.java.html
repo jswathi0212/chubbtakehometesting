@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClaimEventKafkaConsumer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bff-service</a> &gt; <a href="index.source.html" class="el_package">com.example.demo.adapter.in.messaging</a> &gt; <span class="el_source">ClaimEventKafkaConsumer.java</span></div><h1>ClaimEventKafkaConsumer.java</h1><pre class="source lang-java linenums">package com.example.demo.adapter.in.messaging;
+
+import com.example.demo.adapter.in.websocket.ClaimWebSocketHandler;
+import com.example.demo.adapter.in.websocket.WebSocketMessage;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.stereotype.Component;
+
+import java.time.Instant;
+import java.util.UUID;
+
+@Component
+public class ClaimEventKafkaConsumer {
+
+<span class="fc" id="L18">    private static final Logger LOG = LoggerFactory.getLogger(ClaimEventKafkaConsumer.class);</span>
+
+    private final ClaimWebSocketHandler webSocketHandler;
+    private final ObjectMapper objectMapper;
+
+<span class="fc" id="L23">    public ClaimEventKafkaConsumer(ClaimWebSocketHandler webSocketHandler, ObjectMapper objectMapper) {</span>
+<span class="fc" id="L24">        this.webSocketHandler = webSocketHandler;</span>
+<span class="fc" id="L25">        this.objectMapper = objectMapper;</span>
+<span class="fc" id="L26">    }</span>
+
+    @KafkaListener(
+            topics = &quot;claim-events&quot;,
+            groupId = &quot;bff-websocket-consumer-group&quot;,
+            autoStartup = &quot;${kafka.consumer.auto-startup:true}&quot;
+    )
+    public void consumeDomainEvent(String message) {
+        try {
+<span class="fc" id="L35">            JsonNode envelope = objectMapper.readTree(message);</span>
+<span class="fc" id="L36">            String eventType = envelope.path(&quot;eventType&quot;).asText();</span>
+<span class="fc" id="L37">            JsonNode payload = envelope.path(&quot;payload&quot;);</span>
+<span class="fc" id="L38">            String correlationId = payload.path(&quot;correlationId&quot;).asText();</span>
+<span class="pc bpc" id="L39" title="1 of 4 branches missed.">            if (correlationId == null || correlationId.isEmpty()) {</span>
+<span class="fc" id="L40">                correlationId = envelope.path(&quot;eventId&quot;).asText();</span>
+            }
+
+<span class="fc bfc" id="L43" title="All 3 branches covered.">            switch (eventType) {</span>
+<span class="fc" id="L44">                case &quot;claim-submitted&quot; -&gt; handleClaimSubmitted(payload, correlationId);</span>
+<span class="fc" id="L45">                case &quot;claim-status-changed&quot; -&gt; handleClaimStatusChanged(payload, correlationId);</span>
+<span class="fc" id="L46">                default -&gt; LOG.debug(&quot;Ignoring unknown domain event type: {}&quot;, eventType);</span>
+            }
+<span class="fc" id="L48">        } catch (com.fasterxml.jackson.core.JsonProcessingException exception) {</span>
+<span class="fc" id="L49">            LOG.error(&quot;Failed to process domain event from claim-events topic: {}&quot;, exception.getMessage(), exception);</span>
+<span class="fc" id="L50">        }</span>
+<span class="fc" id="L51">    }</span>
+
+    @KafkaListener(
+            topics = &quot;cdc.demo-app.public.claims&quot;,
+            groupId = &quot;bff-websocket-consumer-group&quot;,
+            autoStartup = &quot;${kafka.consumer.auto-startup:true}&quot;
+    )
+    public void consumeCdcEvent(String message) {
+        try {
+<span class="fc" id="L60">            JsonNode cdcEnvelope = objectMapper.readTree(message);</span>
+<span class="fc" id="L61">            String operation = cdcEnvelope.path(&quot;op&quot;).asText();</span>
+
+<span class="fc bfc" id="L63" title="All 2 branches covered.">            if (&quot;u&quot;.equals(operation)) {</span>
+<span class="fc" id="L64">                handleCdcUpdate(cdcEnvelope);</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">            } else if (&quot;c&quot;.equals(operation)) {</span>
+<span class="fc" id="L66">                handleCdcCreate(cdcEnvelope);</span>
+            } else {
+<span class="fc" id="L68">                LOG.debug(&quot;Ignoring CDC operation: {}&quot;, operation);</span>
+            }
+<span class="fc" id="L70">        } catch (com.fasterxml.jackson.core.JsonProcessingException exception) {</span>
+<span class="fc" id="L71">            LOG.error(&quot;Failed to process CDC event from cdc.demo-app.public.claims topic: {}&quot;, exception.getMessage(), exception);</span>
+<span class="fc" id="L72">        }</span>
+<span class="fc" id="L73">    }</span>
+
+    private void handleClaimSubmitted(JsonNode payload, String correlationId) {
+<span class="fc" id="L76">        String claimId = payload.path(&quot;claimId&quot;).asText();</span>
+
+<span class="fc" id="L78">        WebSocketMessage webSocketMessage = new WebSocketMessage(</span>
+                &quot;CLAIM_SUBMITTED&quot;,
+                claimId,
+                &quot;SUBMITTED&quot;,
+                null,
+<span class="fc" id="L83">                Instant.now(),</span>
+                correlationId
+        );
+
+<span class="fc" id="L87">        webSocketHandler.broadcastToAdmins(webSocketMessage);</span>
+<span class="fc" id="L88">        LOG.debug(&quot;Broadcast CLAIM_SUBMITTED for claimId={}&quot;, claimId);</span>
+<span class="fc" id="L89">    }</span>
+
+    private void handleClaimStatusChanged(JsonNode payload, String correlationId) {
+<span class="fc" id="L92">        String claimId = payload.path(&quot;claimId&quot;).asText();</span>
+<span class="fc" id="L93">        String newStatus = payload.path(&quot;newStatus&quot;).asText();</span>
+<span class="fc" id="L94">        String oldStatus = payload.path(&quot;oldStatus&quot;).asText();</span>
+<span class="fc" id="L95">        String userId = payload.path(&quot;userId&quot;).asText(null);</span>
+
+<span class="fc" id="L97">        WebSocketMessage webSocketMessage = new WebSocketMessage(</span>
+                &quot;CLAIM_STATUS_CHANGED&quot;,
+                claimId,
+                newStatus,
+                oldStatus,
+<span class="fc" id="L102">                Instant.now(),</span>
+                correlationId
+        );
+
+<span class="fc bfc" id="L106" title="All 4 branches covered.">        if (userId != null &amp;&amp; !userId.isEmpty()) {</span>
+<span class="fc" id="L107">            webSocketHandler.broadcastToUserAndAdmins(userId, webSocketMessage);</span>
+        } else {
+<span class="fc" id="L109">            webSocketHandler.broadcastToAdmins(webSocketMessage);</span>
+        }
+<span class="fc" id="L111">        LOG.debug(&quot;Broadcast CLAIM_STATUS_CHANGED for claimId={}, {} -&gt; {}&quot;, claimId, oldStatus, newStatus);</span>
+<span class="fc" id="L112">    }</span>
+
+    private void handleCdcUpdate(JsonNode cdcEnvelope) {
+<span class="fc" id="L115">        JsonNode before = cdcEnvelope.path(&quot;before&quot;);</span>
+<span class="fc" id="L116">        JsonNode after = cdcEnvelope.path(&quot;after&quot;);</span>
+
+<span class="fc" id="L118">        String claimId = after.path(&quot;claim_id&quot;).asText();</span>
+<span class="fc" id="L119">        String newStatus = after.path(&quot;status&quot;).asText();</span>
+<span class="fc" id="L120">        String oldStatus = before.path(&quot;status&quot;).asText();</span>
+<span class="fc" id="L121">        String userId = after.path(&quot;user_id&quot;).asText(null);</span>
+<span class="fc" id="L122">        long timestampMs = cdcEnvelope.path(&quot;ts_ms&quot;).asLong();</span>
+        // CDC events have no prior correlation ID (database-level change), generate new for tracing
+<span class="fc" id="L124">        String correlationId = UUID.randomUUID().toString();</span>
+
+<span class="fc" id="L126">        WebSocketMessage webSocketMessage = new WebSocketMessage(</span>
+                &quot;CLAIM_STATUS_CHANGED&quot;,
+                claimId,
+                newStatus,
+                oldStatus,
+<span class="fc" id="L131">                Instant.ofEpochMilli(timestampMs),</span>
+                correlationId
+        );
+
+<span class="fc bfc" id="L135" title="All 4 branches covered.">        if (userId != null &amp;&amp; !userId.isEmpty()) {</span>
+<span class="fc" id="L136">            webSocketHandler.broadcastToUserAndAdmins(userId, webSocketMessage);</span>
+        } else {
+<span class="fc" id="L138">            webSocketHandler.broadcastToAdmins(webSocketMessage);</span>
+        }
+<span class="fc" id="L140">        LOG.debug(&quot;Broadcast CDC CLAIM_STATUS_CHANGED for claimId={}, {} -&gt; {}&quot;, claimId, oldStatus, newStatus);</span>
+<span class="fc" id="L141">    }</span>
+
+    private void handleCdcCreate(JsonNode cdcEnvelope) {
+<span class="fc" id="L144">        JsonNode after = cdcEnvelope.path(&quot;after&quot;);</span>
+
+<span class="fc" id="L146">        String claimId = after.path(&quot;claim_id&quot;).asText();</span>
+<span class="fc" id="L147">        long timestampMs = cdcEnvelope.path(&quot;ts_ms&quot;).asLong();</span>
+        // CDC events have no prior correlation ID (database-level change), generate new for tracing
+<span class="fc" id="L149">        String correlationId = UUID.randomUUID().toString();</span>
+
+<span class="fc" id="L151">        WebSocketMessage webSocketMessage = new WebSocketMessage(</span>
+                &quot;CLAIM_SUBMITTED&quot;,
+                claimId,
+                &quot;SUBMITTED&quot;,
+                null,
+<span class="fc" id="L156">                Instant.ofEpochMilli(timestampMs),</span>
+                correlationId
+        );
+
+<span class="fc" id="L160">        webSocketHandler.broadcastToAdmins(webSocketMessage);</span>
+<span class="fc" id="L161">        LOG.debug(&quot;Broadcast CDC CLAIM_SUBMITTED for claimId={}&quot;, claimId);</span>
+<span class="fc" id="L162">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

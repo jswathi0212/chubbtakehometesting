@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClaimsServicePort.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bff-service</a> &gt; <a href="index.source.html" class="el_package">com.example.demo.application.auth</a> &gt; <span class="el_source">ClaimsServicePort.java</span></div><h1>ClaimsServicePort.java</h1><pre class="source lang-java linenums">package com.example.demo.application.auth;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Port interface for Claims Service operations.
+ * Adapter implementations handle communication with Claims Service REST API.
+ */
+public interface ClaimsServicePort {
+
+    UserRecord createUser(UUID userId, String email, String name, String role);
+
+    UserRecord getUser(UUID userId);
+
+    ClaimRecord submitClaim(String userJwtToken, LocalDate incidentDate, String incidentLocation,
+                            String description, BigDecimal claimAmount);
+
+    List&lt;ClaimSummaryRecord&gt; listClaims(String userJwtToken, UUID userId);
+
+    ClaimRecord getClaim(String userJwtToken, UUID claimId);
+
+<span class="fc" id="L26">    record UserRecord(UUID userId, String email, String name, String role, OffsetDateTime createdAt) {}</span>
+
+<span class="fc" id="L28">    record ClaimRecord(UUID claimId, UUID userId, LocalDate incidentDate, String incidentLocation,</span>
+                       String description, BigDecimal claimAmount, String status,
+                       OffsetDateTime createdAt, OffsetDateTime updatedAt) {}
+
+<span class="fc" id="L32">    record ClaimSummaryRecord(UUID claimId, LocalDate incidentDate, String description,</span>
+                              BigDecimal claimAmount, String status, OffsetDateTime createdAt) {}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

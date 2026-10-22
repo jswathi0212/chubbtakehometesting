@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>KeycloakTokenAdapter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bff-service</a> &gt; <a href="index.source.html" class="el_package">com.example.demo.adapter.out.keycloak</a> &gt; <span class="el_source">KeycloakTokenAdapter.java</span></div><h1>KeycloakTokenAdapter.java</h1><pre class="source lang-java linenums">package com.example.demo.adapter.out.keycloak;
+
+import com.example.demo.application.auth.InvalidCredentialsException;
+import com.example.demo.application.auth.KeycloakTokenPort;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestClient;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+
+@Component
+public class KeycloakTokenAdapter implements KeycloakTokenPort {
+
+    private final RestClient restClient;
+    private final String tokenUrl;
+    private final String logoutUrl;
+    private final String clientId;
+
+    public KeycloakTokenAdapter(
+            RestClient.Builder restClientBuilder,
+            @Value(&quot;${keycloak.token.url}&quot;) String tokenUrl,
+            @Value(&quot;${keycloak.logout.url}&quot;) String logoutUrl,
+            @Value(&quot;${keycloak.token.client-id:demo-app-ui}&quot;) String clientId
+<span class="fc" id="L29">    ) {</span>
+<span class="fc" id="L30">        this.restClient = restClientBuilder.build();</span>
+<span class="fc" id="L31">        this.tokenUrl = tokenUrl;</span>
+<span class="fc" id="L32">        this.logoutUrl = logoutUrl;</span>
+<span class="fc" id="L33">        this.clientId = clientId;</span>
+<span class="fc" id="L34">    }</span>
+
+    @Override
+    public TokenResponse getTokens(String email, String password) {
+<span class="fc" id="L38">        var formBody = &quot;grant_type=password&quot;</span>
+<span class="fc" id="L39">                + &quot;&amp;username=&quot; + URLEncoder.encode(email, StandardCharsets.UTF_8)</span>
+<span class="fc" id="L40">                + &quot;&amp;password=&quot; + URLEncoder.encode(password, StandardCharsets.UTF_8)</span>
+<span class="fc" id="L41">                + &quot;&amp;client_id=&quot; + URLEncoder.encode(clientId, StandardCharsets.UTF_8);</span>
+<span class="fc" id="L42">        return postToTokenEndpoint(formBody);</span>
+    }
+
+    @Override
+    public TokenResponse refreshTokens(String refreshToken) {
+<span class="fc" id="L47">        var formBody = &quot;grant_type=refresh_token&quot;</span>
+<span class="fc" id="L48">                + &quot;&amp;refresh_token=&quot; + URLEncoder.encode(refreshToken, StandardCharsets.UTF_8)</span>
+<span class="fc" id="L49">                + &quot;&amp;client_id=&quot; + URLEncoder.encode(clientId, StandardCharsets.UTF_8);</span>
+<span class="fc" id="L50">        return postToTokenEndpoint(formBody);</span>
+    }
+
+    @SuppressWarnings(&quot;unchecked&quot;)
+    private TokenResponse postToTokenEndpoint(String formBody) {
+        try {
+<span class="fc" id="L56">            Map&lt;String, Object&gt; response = restClient.post()</span>
+<span class="fc" id="L57">                    .uri(tokenUrl)</span>
+<span class="fc" id="L58">                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)</span>
+<span class="fc" id="L59">                    .body(formBody)</span>
+<span class="fc" id="L60">                    .retrieve()</span>
+<span class="fc" id="L61">                    .body(Map.class);</span>
+
+<span class="fc bfc" id="L63" title="All 4 branches covered.">            if (response == null || !response.containsKey(&quot;access_token&quot;)) {</span>
+<span class="fc" id="L64">                throw new InvalidCredentialsException();</span>
+            }
+
+<span class="fc" id="L67">            return new TokenResponse(</span>
+<span class="fc" id="L68">                    (String) response.get(&quot;access_token&quot;),</span>
+<span class="fc" id="L69">                    (String) response.get(&quot;refresh_token&quot;),</span>
+<span class="fc" id="L70">                    (Integer) response.get(&quot;expires_in&quot;),</span>
+<span class="fc" id="L71">                    (Integer) response.get(&quot;refresh_expires_in&quot;)</span>
+            );
+<span class="fc" id="L73">        } catch (HttpClientErrorException exception) {</span>
+<span class="fc" id="L74">            throw new InvalidCredentialsException(exception);</span>
+        }
+    }
+
+    @Override
+    public void invalidateSession(String accessToken) {
+<span class="fc" id="L80">        var formBody = &quot;client_id=&quot; + clientId</span>
+                + &quot;&amp;token=&quot; + accessToken;
+
+<span class="fc" id="L83">        restClient.post()</span>
+<span class="fc" id="L84">                .uri(logoutUrl)</span>
+<span class="fc" id="L85">                .contentType(MediaType.APPLICATION_FORM_URLENCODED)</span>
+<span class="fc" id="L86">                .header(HttpHeaders.AUTHORIZATION, &quot;Bearer &quot; + accessToken)</span>
+<span class="fc" id="L87">                .body(formBody)</span>
+<span class="fc" id="L88">                .retrieve()</span>
+<span class="fc" id="L89">                .toBodilessEntity();</span>
+<span class="fc" id="L90">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

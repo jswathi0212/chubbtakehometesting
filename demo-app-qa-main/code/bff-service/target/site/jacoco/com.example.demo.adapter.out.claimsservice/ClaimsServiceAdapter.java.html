@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClaimsServiceAdapter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bff-service</a> &gt; <a href="index.source.html" class="el_package">com.example.demo.adapter.out.claimsservice</a> &gt; <span class="el_source">ClaimsServiceAdapter.java</span></div><h1>ClaimsServiceAdapter.java</h1><pre class="source lang-java linenums">package com.example.demo.adapter.out.claimsservice;
+
+import com.example.demo.application.auth.ClaimsServicePort;
+import com.example.demo.application.auth.ServiceAccountTokenProvider;
+import com.example.demo.application.auth.UserAlreadyExistsException;
+import com.example.bff.adapter.out.claims.ApiClient;
+import com.example.bff.adapter.out.claims.ApiException;
+import com.example.bff.adapter.out.claims.generated.ClaimsApi;
+import com.example.bff.adapter.out.claims.generated.UsersApi;
+import com.example.bff.adapter.out.claims.generated.model.ClaimResponseDTO;
+import com.example.bff.adapter.out.claims.generated.model.ClaimSummaryResponseDTO;
+import com.example.bff.adapter.out.claims.generated.model.CreateClaimRequestDTO;
+import com.example.bff.adapter.out.claims.generated.model.CreateUserRequestDTO;
+import com.example.bff.adapter.out.claims.generated.model.UserResponseDTO;
+import com.example.bff.adapter.out.claims.generated.model.UserRoleDTO;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.UUID;
+
+@Component
+public class ClaimsServiceAdapter implements ClaimsServicePort {
+
+<span class="fc" id="L30">    private static final Logger LOG = LoggerFactory.getLogger(ClaimsServiceAdapter.class);</span>
+
+    private final UsersApi usersApi;
+    private final ClaimsApi claimsApi;
+    private final ApiClient apiClient;
+    private final ServiceAccountTokenProvider serviceAccountTokenProvider;
+    private final ObjectMapper objectMapper;
+
+    public ClaimsServiceAdapter(
+            ApiClient apiClient,
+            ServiceAccountTokenProvider serviceAccountTokenProvider,
+            ObjectMapper objectMapper
+<span class="fc" id="L42">    ) {</span>
+<span class="fc" id="L43">        this.apiClient = apiClient;</span>
+<span class="fc" id="L44">        LOG.debug(&quot;ClaimsServiceAdapter initialized with URL: {}&quot;, apiClient.getBasePath());</span>
+<span class="fc" id="L45">        this.usersApi = new UsersApi(apiClient);</span>
+<span class="fc" id="L46">        this.claimsApi = new ClaimsApi(apiClient);</span>
+<span class="fc" id="L47">        this.serviceAccountTokenProvider = serviceAccountTokenProvider;</span>
+<span class="fc" id="L48">        this.objectMapper = objectMapper;</span>
+<span class="fc" id="L49">    }</span>
+
+    @Override
+    public UserRecord createUser(UUID userId, String email, String name, String role) {
+<span class="fc" id="L53">        setServiceAccountBearerToken();</span>
+
+<span class="fc" id="L55">        var request = new CreateUserRequestDTO();</span>
+<span class="fc" id="L56">        request.setUserId(userId);</span>
+<span class="fc" id="L57">        request.setEmail(email);</span>
+<span class="fc" id="L58">        request.setName(name);</span>
+<span class="fc" id="L59">        request.setRole(UserRoleDTO.fromValue(role));</span>
+
+<span class="fc" id="L61">        LOG.debug(&quot;About to call Claims Service POST /api/users: email={}, name={}, role={}&quot;, email, name, role);</span>
+
+        try {
+<span class="fc" id="L64">            var response = usersApi.createUser(request);</span>
+<span class="fc" id="L65">            LOG.debug(&quot;Claims Service call succeeded, userId={}&quot;, response.getUserId());</span>
+<span class="fc" id="L66">            return mapToUserRecord(response);</span>
+<span class="fc" id="L67">        } catch (ApiException exception) {</span>
+<span class="fc" id="L68">            LOG.debug(&quot;Claims Service call failed with status {}, body={}&quot;, exception.getCode(), exception.getResponseBody());</span>
+<span class="fc" id="L69">            return handleCreateUserException(exception, email, request);</span>
+        }
+    }
+
+    private UserRecord handleCreateUserException(ApiException exception, String email, CreateUserRequestDTO request) {
+<span class="fc bfc" id="L74" title="All 2 branches covered.">        if (exception.getCode() == 409) {</span>
+<span class="nc" id="L75">            return handleConflictOnCreateUser(exception, email);</span>
+        }
+<span class="fc bfc" id="L77" title="All 2 branches covered.">        if (exception.getCode() == 401) {</span>
+<span class="fc" id="L78">            LOG.debug(&quot;Got 401, attempting token refresh and retry&quot;);</span>
+<span class="fc" id="L79">            return retryWithFreshToken(() -&gt; {</span>
+                try {
+<span class="fc" id="L81">                    LOG.debug(&quot;Retrying Claims Service call with fresh token&quot;);</span>
+<span class="fc" id="L82">                    var retryResponse = usersApi.createUser(request);</span>
+<span class="fc" id="L83">                    LOG.debug(&quot;Retry succeeded&quot;);</span>
+<span class="fc" id="L84">                    return mapToUserRecord(retryResponse);</span>
+<span class="nc" id="L85">                } catch (ApiException retryException) {</span>
+<span class="nc" id="L86">                    LOG.debug(&quot;Retry also failed with status {}, body={}&quot;, retryException.getCode(), retryException.getResponseBody());</span>
+<span class="nc" id="L87">                    throw new IllegalStateException(&quot;Claims Service call failed after token refresh: &quot; + retryException.getMessage(), retryException);</span>
+                }
+            });
+        }
+<span class="fc" id="L91">        throw new IllegalStateException(&quot;Claims Service call failed: &quot; + exception.getMessage(), exception);</span>
+    }
+
+    private UserRecord handleConflictOnCreateUser(ApiException exception, String email) {
+        // User already exists by email — parse the existing user from the response body
+        // This handles login auto-provisioning when UUID differs from what's in DB.
+        // Signup never reaches here because Keycloak rejects duplicate emails first.
+<span class="fc" id="L98">        String responseBody = exception.getResponseBody();</span>
+<span class="pc bpc" id="L99" title="3 of 4 branches missed.">        if (responseBody != null &amp;&amp; !responseBody.isBlank()) {</span>
+            try {
+<span class="nc" id="L101">                var existing = objectMapper.readValue(responseBody, UserResponseDTO.class);</span>
+<span class="nc" id="L102">                LOG.debug(&quot;User already exists by email, returning existing user userId={}&quot;, existing.getUserId());</span>
+<span class="nc" id="L103">                return mapToUserRecord(existing);</span>
+<span class="nc" id="L104">            } catch (com.fasterxml.jackson.core.JsonProcessingException parseEx) {</span>
+<span class="nc" id="L105">                LOG.warn(&quot;409 from claims service but could not parse body&quot;, parseEx);</span>
+<span class="nc" id="L106">                var ex = new UserAlreadyExistsException(email, exception);</span>
+<span class="nc" id="L107">                ex.addSuppressed(parseEx);</span>
+<span class="nc" id="L108">                throw ex;</span>
+            }
+        }
+<span class="fc" id="L111">        throw new UserAlreadyExistsException(email, exception);</span>
+    }
+
+    @Override
+    public UserRecord getUser(UUID userId) {
+<span class="fc" id="L116">        setServiceAccountBearerToken();</span>
+
+        try {
+<span class="fc" id="L119">            var response = usersApi.getUser(userId);</span>
+<span class="fc" id="L120">            return mapToUserRecord(response);</span>
+<span class="fc" id="L121">        } catch (ApiException exception) {</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">            if (exception.getCode() == 401) {</span>
+<span class="fc" id="L123">                return retryWithFreshToken(() -&gt; {</span>
+                    try {
+<span class="fc" id="L125">                        var retryResponse = usersApi.getUser(userId);</span>
+<span class="fc" id="L126">                        return mapToUserRecord(retryResponse);</span>
+<span class="nc" id="L127">                    } catch (ApiException retryException) {</span>
+<span class="nc" id="L128">                        throw new IllegalStateException(&quot;Claims Service call failed after token refresh: &quot; + retryException.getMessage(), retryException);</span>
+                    }
+                });
+            }
+<span class="fc" id="L132">            throw new IllegalStateException(&quot;Claims Service call failed: &quot; + exception.getMessage(), exception);</span>
+        }
+    }
+
+    @Override
+    public ClaimRecord submitClaim(String userJwtToken, LocalDate incidentDate, String incidentLocation,
+                                   String description, BigDecimal claimAmount) {
+<span class="fc" id="L139">        setUserBearerToken(userJwtToken);</span>
+
+<span class="fc" id="L141">        var request = new CreateClaimRequestDTO();</span>
+<span class="fc" id="L142">        request.setIncidentDate(incidentDate);</span>
+<span class="fc" id="L143">        request.setIncidentLocation(incidentLocation);</span>
+<span class="fc" id="L144">        request.setDescription(description);</span>
+<span class="fc" id="L145">        request.setClaimAmount(claimAmount.doubleValue());</span>
+
+        try {
+<span class="fc" id="L148">            var response = claimsApi.createClaim(request);</span>
+<span class="fc" id="L149">            return mapToClaimRecord(response);</span>
+<span class="fc" id="L150">        } catch (ApiException exception) {</span>
+<span class="fc" id="L151">            throw new IllegalStateException(&quot;Claims Service call failed: &quot; + exception.getMessage(), exception);</span>
+        }
+    }
+
+    @Override
+    public List&lt;ClaimSummaryRecord&gt; listClaims(String userJwtToken, UUID userId) {
+<span class="fc" id="L157">        setUserBearerToken(userJwtToken);</span>
+
+        try {
+<span class="fc" id="L160">            var response = claimsApi.listClaims();</span>
+<span class="fc" id="L161">            return response.stream()</span>
+<span class="fc" id="L162">                    .map(this::mapToClaimSummaryRecord)</span>
+<span class="fc" id="L163">                    .toList();</span>
+<span class="fc" id="L164">        } catch (ApiException exception) {</span>
+<span class="fc" id="L165">            throw new IllegalStateException(&quot;Claims Service call failed: &quot; + exception.getMessage(), exception);</span>
+        }
+    }
+
+    @Override
+    public ClaimRecord getClaim(String userJwtToken, UUID claimId) {
+<span class="fc" id="L171">        setUserBearerToken(userJwtToken);</span>
+
+        try {
+<span class="fc" id="L174">            var response = claimsApi.getClaim(claimId);</span>
+<span class="fc" id="L175">            return mapToClaimRecord(response);</span>
+<span class="fc" id="L176">        } catch (ApiException exception) {</span>
+<span class="fc bfc" id="L177" title="All 2 branches covered.">            if (exception.getCode() == 403) {</span>
+<span class="fc" id="L178">                throw new IllegalStateException(&quot;Forbidden: not authorized to access this claim&quot;, exception);</span>
+            }
+<span class="fc bfc" id="L180" title="All 2 branches covered.">            if (exception.getCode() == 404) {</span>
+<span class="fc" id="L181">                throw new IllegalStateException(&quot;Claim not found: &quot; + claimId, exception);</span>
+            }
+<span class="fc" id="L183">            throw new IllegalStateException(&quot;Claims Service call failed: &quot; + exception.getMessage(), exception);</span>
+        }
+    }
+
+    private ClaimRecord mapToClaimRecord(ClaimResponseDTO response) {
+<span class="fc" id="L188">        return new ClaimRecord(</span>
+<span class="fc" id="L189">                response.getClaimId(),</span>
+<span class="fc" id="L190">                response.getUserId(),</span>
+<span class="fc" id="L191">                response.getIncidentDate(),</span>
+<span class="fc" id="L192">                response.getIncidentLocation(),</span>
+<span class="fc" id="L193">                response.getDescription(),</span>
+<span class="fc" id="L194">                BigDecimal.valueOf(response.getClaimAmount()),</span>
+<span class="fc" id="L195">                response.getStatus().getValue(),</span>
+<span class="fc" id="L196">                response.getCreatedAt(),</span>
+<span class="fc" id="L197">                response.getUpdatedAt()</span>
+        );
+    }
+
+    private ClaimSummaryRecord mapToClaimSummaryRecord(ClaimSummaryResponseDTO response) {
+<span class="fc" id="L202">        return new ClaimSummaryRecord(</span>
+<span class="fc" id="L203">                response.getClaimId(),</span>
+<span class="fc" id="L204">                response.getIncidentDate(),</span>
+<span class="fc" id="L205">                response.getDescription(),</span>
+<span class="fc" id="L206">                BigDecimal.valueOf(response.getClaimAmount()),</span>
+<span class="fc" id="L207">                response.getStatus().getValue(),</span>
+<span class="fc" id="L208">                response.getCreatedAt()</span>
+        );
+    }
+
+    private void setServiceAccountBearerToken() {
+<span class="fc" id="L213">        String token = serviceAccountTokenProvider.getServiceAccountToken();</span>
+<span class="fc" id="L214">        LOG.debug(&quot;Setting service account token (length={})&quot;, token.length());</span>
+<span class="fc" id="L215">        apiClient.setBearerToken(token);</span>
+<span class="fc" id="L216">    }</span>
+
+    private void setUserBearerToken(String userJwtToken) {
+<span class="fc" id="L219">        apiClient.setBearerToken(userJwtToken);</span>
+<span class="fc" id="L220">    }</span>
+
+    private &lt;T&gt; T retryWithFreshToken(java.util.function.Supplier&lt;T&gt; operation) {
+<span class="fc" id="L223">        String freshToken = serviceAccountTokenProvider.forceRefreshToken();</span>
+<span class="fc" id="L224">        apiClient.setBearerToken(freshToken);</span>
+<span class="fc" id="L225">        return operation.get();</span>
+    }
+
+    private UserRecord mapToUserRecord(UserResponseDTO response) {
+<span class="fc" id="L229">        return new UserRecord(</span>
+<span class="fc" id="L230">                response.getUserId(),</span>
+<span class="fc" id="L231">                response.getEmail(),</span>
+<span class="fc" id="L232">                response.getName(),</span>
+<span class="fc" id="L233">                response.getRole().getValue(),</span>
+<span class="fc bfc" id="L234" title="All 2 branches covered.">                response.getCreatedAt() != null ? response.getCreatedAt() : OffsetDateTime.now()</span>
+        );
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

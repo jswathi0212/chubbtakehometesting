@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClaimWebSocketHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bff-service</a> &gt; <a href="index.source.html" class="el_package">com.example.demo.adapter.in.websocket</a> &gt; <span class="el_source">ClaimWebSocketHandler.java</span></div><h1>ClaimWebSocketHandler.java</h1><pre class="source lang-java linenums">package com.example.demo.adapter.in.websocket;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+import org.springframework.web.socket.CloseStatus;
+import org.springframework.web.socket.PingMessage;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.handler.TextWebSocketHandler;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
+
+@Component
+public class ClaimWebSocketHandler extends TextWebSocketHandler {
+
+<span class="fc" id="L25">    private static final Logger LOG = LoggerFactory.getLogger(ClaimWebSocketHandler.class);</span>
+    private static final String USER_ID_ATTRIBUTE = &quot;userId&quot;;
+    private static final String USER_ROLES_ATTRIBUTE = &quot;userRoles&quot;;
+
+<span class="fc" id="L29">    private final Map&lt;String, Set&lt;WebSocketSession&gt;&gt; sessionsByUserId = new ConcurrentHashMap&lt;&gt;();</span>
+    private final ObjectMapper objectMapper;
+
+<span class="fc" id="L32">    public ClaimWebSocketHandler(ObjectMapper objectMapper) {</span>
+<span class="fc" id="L33">        this.objectMapper = objectMapper;</span>
+<span class="fc" id="L34">    }</span>
+
+    @Override
+    public void afterConnectionEstablished(WebSocketSession session) {
+<span class="fc" id="L38">        String userId = getUserId(session);</span>
+<span class="fc bfc" id="L39" title="All 2 branches covered.">        if (userId == null) {</span>
+<span class="fc" id="L40">            LOG.warn(&quot;WebSocket connection without userId, closing session: {}&quot;, session.getId());</span>
+<span class="fc" id="L41">            closeSession(session);</span>
+<span class="fc" id="L42">            return;</span>
+        }
+
+<span class="fc" id="L45">        sessionsByUserId.computeIfAbsent(userId, key -&gt; new CopyOnWriteArraySet&lt;&gt;()).add(session);</span>
+<span class="fc" id="L46">        LOG.info(&quot;WebSocket connected: userId={}, sessionId={}&quot;, userId, session.getId());</span>
+<span class="fc" id="L47">    }</span>
+
+    @Override
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
+<span class="fc" id="L51">        String userId = getUserId(session);</span>
+<span class="fc bfc" id="L52" title="All 2 branches covered.">        if (userId != null) {</span>
+<span class="fc" id="L53">            removeSessionForUser(userId, session);</span>
+<span class="fc" id="L54">            LOG.info(&quot;WebSocket disconnected: userId={}, sessionId={}, status={}&quot;, userId, session.getId(), status);</span>
+        }
+<span class="fc" id="L56">    }</span>
+
+    private void removeSessionForUser(String userId, WebSocketSession session) {
+<span class="fc" id="L59">        Set&lt;WebSocketSession&gt; sessions = sessionsByUserId.get(userId);</span>
+<span class="pc bpc" id="L60" title="1 of 2 branches missed.">        if (sessions != null) {</span>
+<span class="fc" id="L61">            sessions.remove(session);</span>
+<span class="fc bfc" id="L62" title="All 2 branches covered.">            if (sessions.isEmpty()) {</span>
+<span class="fc" id="L63">                sessionsByUserId.remove(userId);</span>
+            }
+        }
+<span class="fc" id="L66">    }</span>
+
+    @Override
+    public void handleTransportError(WebSocketSession session, Throwable exception) {
+<span class="fc" id="L70">        LOG.error(&quot;WebSocket transport error for session {}: {}&quot;, session.getId(), exception.getMessage());</span>
+<span class="fc" id="L71">        removeSession(session);</span>
+<span class="fc" id="L72">    }</span>
+
+    public void broadcastToUser(String userId, WebSocketMessage message) {
+<span class="fc" id="L75">        Set&lt;WebSocketSession&gt; sessions = sessionsByUserId.get(userId);</span>
+<span class="pc bpc" id="L76" title="1 of 4 branches missed.">        if (sessions == null || sessions.isEmpty()) {</span>
+<span class="fc" id="L77">            return;</span>
+        }
+<span class="fc" id="L79">        sendToSessions(sessions, message);</span>
+<span class="fc" id="L80">    }</span>
+
+    public void broadcastToAdmins(WebSocketMessage message) {
+<span class="fc" id="L83">        sessionsByUserId.forEach((userId, sessions) -&gt; {</span>
+<span class="fc bfc" id="L84" title="All 2 branches covered.">            for (WebSocketSession session : sessions) {</span>
+<span class="fc bfc" id="L85" title="All 2 branches covered.">                if (isAdmin(session)) {</span>
+<span class="fc" id="L86">                    sendMessage(session, message);</span>
+                }
+<span class="fc" id="L88">            }</span>
+<span class="fc" id="L89">        });</span>
+<span class="fc" id="L90">    }</span>
+
+    public void broadcastToUserAndAdmins(String targetUserId, WebSocketMessage message) {
+<span class="fc" id="L93">        LOG.debug(&quot;Broadcasting to targetUserId={} and admins. Message type={}, claimId={}&quot;,</span>
+<span class="fc" id="L94">                targetUserId, message.type(), message.claimId());</span>
+
+        // Clean up closed sessions first to avoid sending to stale connections
+<span class="fc" id="L97">        cleanupClosedSessions();</span>
+
+<span class="fc" id="L99">        sessionsByUserId.forEach((userId, sessions) -&gt; {</span>
+<span class="fc bfc" id="L100" title="All 2 branches covered.">            for (WebSocketSession session : sessions) {</span>
+<span class="fc" id="L101">                boolean matchesTarget = userId.equals(targetUserId);</span>
+<span class="fc" id="L102">                boolean isAdminUser = isAdmin(session);</span>
+
+<span class="fc bfc" id="L104" title="All 4 branches covered.">                if (matchesTarget || isAdminUser) {</span>
+<span class="fc" id="L105">                    LOG.debug(&quot;  → Sending to userId={}, sessionId={}, isOpen={}, matchesTarget={}, isAdmin={}&quot;,</span>
+<span class="fc" id="L106">                            userId, session.getId(), session.isOpen(), matchesTarget, isAdminUser);</span>
+<span class="fc" id="L107">                    sendMessage(session, message);</span>
+                }
+<span class="fc" id="L109">            }</span>
+<span class="fc" id="L110">        });</span>
+<span class="fc" id="L111">    }</span>
+
+    private boolean isClosedSession(WebSocketSession session, String userId) {
+<span class="fc bfc" id="L114" title="All 2 branches covered.">        boolean closed = !session.isOpen();</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">        if (closed) {</span>
+<span class="fc" id="L116">            LOG.debug(&quot;Removing closed session during cleanup: userId={}, sessionId={}&quot;, userId, session.getId());</span>
+        }
+<span class="fc" id="L118">        return closed;</span>
+    }
+
+    private void cleanupClosedSessions() {
+<span class="fc" id="L122">        sessionsByUserId.forEach((userId, sessions) -&gt;</span>
+<span class="fc" id="L123">            sessions.removeIf(session -&gt; isClosedSession(session, userId))</span>
+        );
+        // Remove empty user entries
+<span class="fc" id="L126">        sessionsByUserId.entrySet().removeIf(entry -&gt; entry.getValue().isEmpty());</span>
+<span class="fc" id="L127">    }</span>
+
+    @Scheduled(fixedRate = 30_000)
+    public void sendHeartbeat() {
+<span class="fc" id="L131">        PingMessage pingMessage = new PingMessage(ByteBuffer.wrap(&quot;ping&quot;.getBytes()));</span>
+<span class="fc" id="L132">        sessionsByUserId.values().forEach(sessions -&gt;</span>
+<span class="fc" id="L133">                sessions.forEach(session -&gt; {</span>
+                    try {
+<span class="fc bfc" id="L135" title="All 2 branches covered.">                        if (session.isOpen()) {</span>
+<span class="fc" id="L136">                            session.sendMessage(pingMessage);</span>
+                        }
+<span class="fc" id="L138">                    } catch (IOException exception) {</span>
+<span class="fc" id="L139">                        LOG.warn(&quot;Failed to send heartbeat to session {}, removing&quot;, session.getId());</span>
+<span class="fc" id="L140">                        removeSession(session);</span>
+<span class="fc" id="L141">                    }</span>
+<span class="fc" id="L142">                })</span>
+        );
+<span class="fc" id="L144">    }</span>
+
+    int getActiveSessionCount() {
+<span class="fc" id="L147">        return sessionsByUserId.values().stream().mapToInt(Set::size).sum();</span>
+    }
+
+    int getActiveUserCount() {
+<span class="fc" id="L151">        return sessionsByUserId.size();</span>
+    }
+
+    private void sendToSessions(Set&lt;WebSocketSession&gt; sessions, WebSocketMessage message) {
+<span class="fc bfc" id="L155" title="All 2 branches covered.">        for (WebSocketSession session : sessions) {</span>
+<span class="fc" id="L156">            sendMessage(session, message);</span>
+<span class="fc" id="L157">        }</span>
+<span class="fc" id="L158">    }</span>
+
+    private void sendMessage(WebSocketSession session, WebSocketMessage message) {
+        try {
+            // Double-check session state before sending
+<span class="fc bfc" id="L163" title="All 2 branches covered.">            if (!session.isOpen()) {</span>
+<span class="fc" id="L164">                LOG.debug(&quot;Skipping closed session: sessionId={}&quot;, session.getId());</span>
+<span class="fc" id="L165">                removeSession(session);</span>
+<span class="fc" id="L166">                return;</span>
+            }
+
+<span class="fc" id="L169">            String json = objectMapper.writeValueAsString(message);</span>
+<span class="fc" id="L170">            LOG.debug(&quot;Sending WebSocket message to sessionId={}, json={}&quot;, session.getId(), json);</span>
+
+<span class="fc" id="L172">            session.sendMessage(new TextMessage(json));</span>
+<span class="fc" id="L173">            LOG.debug(&quot;✅ Successfully sent message to sessionId={}&quot;, session.getId());</span>
+<span class="fc" id="L174">        } catch (IOException exception) {</span>
+<span class="fc" id="L175">            LOG.warn(&quot;IOException sending WebSocket message to session {}: {} - removing stale connection&quot;,</span>
+<span class="fc" id="L176">                    session.getId(), exception.getMessage());</span>
+<span class="fc" id="L177">            removeSession(session);</span>
+<span class="fc" id="L178">        } catch (IllegalStateException exception) {</span>
+<span class="fc" id="L179">            LOG.warn(&quot;IllegalStateException sending WebSocket message to session {}: {} - session already closed&quot;,</span>
+<span class="fc" id="L180">                    session.getId(), exception.getMessage());</span>
+<span class="fc" id="L181">            removeSession(session);</span>
+<span class="fc" id="L182">        }</span>
+<span class="fc" id="L183">    }</span>
+
+    private void removeSession(WebSocketSession session) {
+<span class="fc" id="L186">        String userId = getUserId(session);</span>
+<span class="fc bfc" id="L187" title="All 2 branches covered.">        if (userId != null) {</span>
+<span class="fc" id="L188">            removeSessionForUser(userId, session);</span>
+        }
+<span class="fc" id="L190">        closeSession(session);</span>
+<span class="fc" id="L191">    }</span>
+
+    private void closeSession(WebSocketSession session) {
+        try {
+<span class="fc bfc" id="L195" title="All 2 branches covered.">            if (session.isOpen()) {</span>
+<span class="fc" id="L196">                session.close();</span>
+            }
+<span class="nc" id="L198">        } catch (IOException exception) {</span>
+<span class="nc" id="L199">            LOG.debug(&quot;Error closing WebSocket session: {}&quot;, exception.getMessage());</span>
+<span class="fc" id="L200">        }</span>
+<span class="fc" id="L201">    }</span>
+
+    private String getUserId(WebSocketSession session) {
+<span class="fc" id="L204">        return (String) session.getAttributes().get(USER_ID_ATTRIBUTE);</span>
+    }
+
+    @SuppressWarnings(&quot;unchecked&quot;)
+    private boolean isAdmin(WebSocketSession session) {
+<span class="fc" id="L209">        List&lt;String&gt; roles = (List&lt;String&gt;) session.getAttributes().get(USER_ROLES_ATTRIBUTE);</span>
+<span class="fc bfc" id="L210" title="All 4 branches covered.">        return roles != null &amp;&amp; roles.stream().anyMatch(&quot;ADMIN&quot;::equalsIgnoreCase);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

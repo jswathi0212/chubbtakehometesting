@@ -1,0 +1,1016 @@
+openapi: 3.0.3
+info:
+  contact:
+    name: Demo App Team
+  description: |
+    Internal Claims Service API for the Demo Insurance Claims Application.
+    This is the single source of truth for the BFF ↔ Claims Service contract.
+    All endpoints require OAuth 2.0 bearer token authentication.
+  title: Claims Service API
+  version: 1.0.0
+servers:
+- description: Local development server
+  url: http://localhost:8081
+security:
+- bearerAuth: []
+tags:
+- description: User management endpoints
+  name: Users
+- description: Claim management endpoints
+  name: Claims
+- description: Admin dashboard statistics and cache management endpoints
+  name: Dashboard
+- description: Admin claims management endpoints
+  name: Admin Claims
+paths:
+  /api/users:
+    get:
+      description: Returns a list of all users in the system. Requires ADMIN role.
+      operationId: listAllUsers
+      responses:
+        "200":
+          content:
+            application/json:
+              example:
+              - userId: 550e8400-e29b-41d4-a716-446655440000
+                email: admin@example.com
+                name: Admin User
+                role: ADMIN
+                createdAt: 2026-02-17T10:30:00.000Z
+              - userId: 660e8400-e29b-41d4-a716-446655440001
+                email: jane.doe@example.com
+                name: Jane Doe
+                role: CLAIMANT
+                createdAt: 2026-02-17T11:00:00.000Z
+              schema:
+                items:
+                  $ref: "#/components/schemas/UserResponse"
+                type: array
+          description: List of users
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid bearer token
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Access denied - requires ADMIN role
+      summary: List all users (Admin only)
+      tags:
+      - Users
+      x-accepts:
+      - application/json
+    post:
+      description: Creates a new user in the Claims Service.
+      operationId: createUser
+      requestBody:
+        content:
+          application/json:
+            example:
+              email: jane.doe@example.com
+              name: Jane Doe
+              role: CLAIMANT
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              example:
+                userId: 550e8400-e29b-41d4-a716-446655440000
+                email: jane.doe@example.com
+                name: Jane Doe
+                role: CLAIMANT
+                createdAt: 2026-02-17T10:30:00.000Z
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+          description: User created successfully
+        "400":
+          content:
+            application/json:
+              example:
+                type: https://api.demo-app.com/errors/validation-error
+                title: Validation Error
+                status: 400
+                detail: Email format is invalid
+                instance: /api/users
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Validation error
+        "401":
+          content:
+            application/json:
+              example:
+                type: https://api.demo-app.com/errors/unauthorized
+                title: Unauthorized
+                status: 401
+                detail: Bearer token is missing or invalid
+                instance: /api/users
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid bearer token
+        "409":
+          content:
+            application/json:
+              example:
+                type: https://api.demo-app.com/errors/duplicate-entity
+                title: Conflict
+                status: 409
+                detail: A user with this email already exists
+                instance: /api/users
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: User with this email already exists
+      summary: Create a new user
+      tags:
+      - Users
+      x-content-type: application/json
+      x-accepts:
+      - application/json
+  /api/users/{userId}:
+    get:
+      description: Returns the details of a user by their ID.
+      operationId: getUser
+      parameters:
+      - description: The unique identifier of the user
+        example: 550e8400-e29b-41d4-a716-446655440000
+        explode: false
+        in: path
+        name: userId
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              example:
+                userId: 550e8400-e29b-41d4-a716-446655440000
+                email: jane.doe@example.com
+                name: Jane Doe
+                role: CLAIMANT
+                createdAt: 2026-02-17T10:30:00.000Z
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+          description: User details
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid bearer token
+        "404":
+          content:
+            application/json:
+              example:
+                type: https://api.demo-app.com/errors/not-found
+                title: Not Found
+                status: 404
+                detail: User not found
+                instance: /api/users/550e8400-e29b-41d4-a716-446655440000
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: User not found
+      summary: Get user details
+      tags:
+      - Users
+      x-accepts:
+      - application/json
+  /api/claims:
+    get:
+      description: "Returns all claims belonging to the authenticated user (extracted\
+        \ from JWT token), sorted by creation date (newest first)."
+      operationId: listClaims
+      responses:
+        "200":
+          content:
+            application/json:
+              example:
+              - claimId: 660e8400-e29b-41d4-a716-446655440001
+                incidentDate: 2026-02-15
+                description: Water damage to basement due to pipe burst
+                claimAmount: 5000.0
+                status: SUBMITTED
+                createdAt: 2026-02-17T10:30:00.000Z
+              schema:
+                items:
+                  $ref: "#/components/schemas/ClaimSummaryResponse"
+                type: array
+          description: List of claims
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid bearer token
+      summary: List all claims for authenticated user
+      tags:
+      - Claims
+      x-accepts:
+      - application/json
+    post:
+      description: Creates a new insurance claim for the authenticated user. User
+        ID is extracted from JWT token.
+      operationId: createClaim
+      requestBody:
+        content:
+          application/json:
+            example:
+              incidentDate: 2026-02-15
+              incidentLocation: "123 Main St, Springfield, IL"
+              description: Water damage to basement due to pipe burst
+              claimAmount: 5000.0
+            schema:
+              $ref: "#/components/schemas/CreateClaimRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              example:
+                claimId: 660e8400-e29b-41d4-a716-446655440001
+                userId: 550e8400-e29b-41d4-a716-446655440000
+                incidentDate: 2026-02-15
+                incidentLocation: "123 Main St, Springfield, IL"
+                description: Water damage to basement due to pipe burst
+                claimAmount: 5000.0
+                status: SUBMITTED
+                createdAt: 2026-02-17T10:30:00.000Z
+                updatedAt: 2026-02-17T10:30:00.000Z
+              schema:
+                $ref: "#/components/schemas/ClaimResponse"
+          description: Claim created successfully
+        "400":
+          content:
+            application/json:
+              example:
+                type: https://api.demo-app.com/errors/validation-error
+                title: Validation Error
+                status: 400
+                detail: User ID is required
+                instance: /api/claims
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Validation error
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid bearer token
+        "403":
+          content:
+            application/json:
+              example:
+                type: https://api.demo-app.com/errors/forbidden
+                title: Forbidden
+                status: 403
+                detail: Not authorized to perform this action
+                instance: /api/claims
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Forbidden - userId mismatch or insufficient permissions
+      summary: Create a new insurance claim
+      tags:
+      - Claims
+      x-content-type: application/json
+      x-accepts:
+      - application/json
+  /api/claims/{claimId}:
+    get:
+      description: Returns the details of a specific claim by its ID.
+      operationId: getClaim
+      parameters:
+      - description: The unique identifier of the claim
+        example: 660e8400-e29b-41d4-a716-446655440001
+        explode: false
+        in: path
+        name: claimId
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              example:
+                claimId: 660e8400-e29b-41d4-a716-446655440001
+                userId: 550e8400-e29b-41d4-a716-446655440000
+                incidentDate: 2026-02-15
+                description: Water damage to basement due to pipe burst
+                status: SUBMITTED
+                createdAt: 2026-02-17T10:30:00.000Z
+                updatedAt: 2026-02-17T10:30:00.000Z
+              schema:
+                $ref: "#/components/schemas/ClaimResponse"
+          description: Claim details
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid bearer token
+        "403":
+          content:
+            application/json:
+              example:
+                type: https://api.demo-app.com/errors/forbidden
+                title: Forbidden
+                status: 403
+                detail: Not authorized to access this claim
+                instance: /api/claims/660e8400-e29b-41d4-a716-446655440001
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Forbidden - claim belongs to different user
+        "404":
+          content:
+            application/json:
+              example:
+                type: https://api.demo-app.com/errors/not-found
+                title: Not Found
+                status: 404
+                detail: Claim not found
+                instance: /api/claims/660e8400-e29b-41d4-a716-446655440001
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Claim not found
+      summary: Get claim details
+      tags:
+      - Claims
+      x-accepts:
+      - application/json
+    patch:
+      description: Updates the status and/or description of a specific claim.
+      operationId: updateClaim
+      parameters:
+      - description: The unique identifier of the claim
+        example: 660e8400-e29b-41d4-a716-446655440001
+        explode: false
+        in: path
+        name: claimId
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            example:
+              status: UNDER_REVIEW
+              description: Water damage to basement due to pipe burst - updated with
+                adjuster notes
+            schema:
+              $ref: "#/components/schemas/UpdateClaimRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              example:
+                claimId: 660e8400-e29b-41d4-a716-446655440001
+                userId: 550e8400-e29b-41d4-a716-446655440000
+                incidentDate: 2026-02-15
+                description: Water damage to basement due to pipe burst - updated
+                  with adjuster notes
+                status: UNDER_REVIEW
+                createdAt: 2026-02-17T10:30:00.000Z
+                updatedAt: 2026-02-17T11:00:00.000Z
+              schema:
+                $ref: "#/components/schemas/ClaimResponse"
+          description: Claim updated successfully
+        "400":
+          content:
+            application/json:
+              example:
+                type: https://api.demo-app.com/errors/validation-error
+                title: Validation Error
+                status: 400
+                detail: Cannot transition from REJECTED to APPROVED
+                instance: /api/claims/660e8400-e29b-41d4-a716-446655440001
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Validation error (e.g., invalid status transition)"
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid bearer token
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Claim not found
+      summary: Update a claim
+      tags:
+      - Claims
+      x-content-type: application/json
+      x-accepts:
+      - application/json
+  /api/admin/dashboard/stats:
+    get:
+      description: "Returns aggregated statistics including total users, total claims,\
+        \ and claims grouped by status. Requires ADMIN role. Supports Redis caching\
+        \ with bypass option."
+      operationId: getDashboardStats
+      parameters:
+      - description: "If true, bypass Redis cache and query database directly"
+        explode: true
+        in: query
+        name: bypassCache
+        required: false
+        schema:
+          default: false
+          type: boolean
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              example:
+                totalUsers: 50
+                totalClaims: 142
+                claimsByStatus:
+                  SUBMITTED: 45
+                  UNDER_REVIEW: 32
+                  APPROVED: 50
+                  REJECTED: 15
+                  CLOSED: 0
+                cacheHit: true
+                queryTimeMs: 12
+              schema:
+                $ref: "#/components/schemas/DashboardStatsResponse"
+          description: Dashboard statistics
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid bearer token
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Forbidden - requires ADMIN role
+      summary: Get dashboard statistics
+      tags:
+      - Dashboard
+      x-accepts:
+      - application/json
+  /api/admin/dashboard/flush-cache:
+    post:
+      description: Manually evicts the dashboard statistics cache. Requires ADMIN
+        role.
+      operationId: flushDashboardCache
+      responses:
+        "204":
+          description: Cache flushed successfully
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid bearer token
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Forbidden - requires ADMIN role
+      summary: Flush dashboard statistics cache
+      tags:
+      - Dashboard
+      x-accepts:
+      - application/json
+  /api/admin/claims:
+    get:
+      description: Returns all claims in the system. Supports filtering by status
+        and userId. Requires ADMIN role.
+      operationId: listAllClaims
+      parameters:
+      - description: Filter claims by status
+        example: SUBMITTED
+        explode: true
+        in: query
+        name: status
+        required: false
+        schema:
+          $ref: "#/components/schemas/ClaimStatus"
+        style: form
+      - description: Filter claims by user ID
+        example: 550e8400-e29b-41d4-a716-446655440000
+        explode: true
+        in: query
+        name: userId
+        required: false
+        schema:
+          format: uuid
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/AdminClaimResponse"
+                type: array
+          description: List of claims retrieved successfully
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid bearer token
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Forbidden - requires ADMIN role
+      summary: List all claims with optional filtering (admin only)
+      tags:
+      - Admin Claims
+      x-accepts:
+      - application/json
+  /api/admin/claims/{claimId}/status:
+    patch:
+      description: Updates the status of a specific claim. Requires ADMIN role. Enforces
+        valid status transitions.
+      operationId: updateClaimStatus
+      parameters:
+      - description: The unique identifier of the claim
+        example: 660e8400-e29b-41d4-a716-446655440001
+        explode: false
+        in: path
+        name: claimId
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            example:
+              newStatus: UNDER_REVIEW
+            schema:
+              $ref: "#/components/schemas/UpdateClaimStatusRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClaimResponse"
+          description: Claim status updated successfully
+        "400":
+          content:
+            application/json:
+              example:
+                type: https://api.demo-app.com/errors/validation-error
+                title: Validation Error
+                status: 400
+                detail: Cannot transition from REJECTED to APPROVED
+                instance: /api/admin/claims/660e8400-e29b-41d4-a716-446655440001/status
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Bad Request - invalid status transition
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid bearer token
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Forbidden - requires ADMIN role
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Claim not found
+      summary: Update claim status (admin only)
+      tags:
+      - Admin Claims
+      x-content-type: application/json
+      x-accepts:
+      - application/json
+components:
+  schemas:
+    CreateUserRequest:
+      properties:
+        userId:
+          description: User ID from Keycloak (must match Keycloak user ID)
+          example: 550e8400-e29b-41d4-a716-446655440000
+          format: uuid
+          type: string
+        email:
+          description: User's email address
+          example: jane.doe@example.com
+          format: email
+          type: string
+        name:
+          description: User's full name
+          example: Jane Doe
+          maxLength: 100
+          minLength: 2
+          type: string
+        role:
+          $ref: "#/components/schemas/UserRole"
+      required:
+      - email
+      - name
+      - role
+      - userId
+      type: object
+    UserResponse:
+      example:
+        createdAt: 2026-02-17T10:30:00Z
+        role: CLAIMANT
+        name: Jane Doe
+        userId: 550e8400-e29b-41d4-a716-446655440000
+        email: jane.doe@example.com
+      properties:
+        userId:
+          description: Unique user identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+          format: uuid
+          type: string
+        email:
+          description: User's email address
+          example: jane.doe@example.com
+          format: email
+          type: string
+        name:
+          description: User's full name
+          example: Jane Doe
+          type: string
+        role:
+          $ref: "#/components/schemas/UserRole"
+        createdAt:
+          description: Account creation timestamp (ISO 8601)
+          example: 2026-02-17T10:30:00Z
+          format: date-time
+          type: string
+      required:
+      - createdAt
+      - email
+      - name
+      - role
+      - userId
+      type: object
+    UserRole:
+      description: User role for authorization
+      enum:
+      - CLAIMANT
+      - ADMIN
+      type: string
+    CreateClaimRequest:
+      properties:
+        incidentDate:
+          description: Date of the incident (ISO 8601 date)
+          example: 2026-02-15
+          format: date
+          type: string
+        incidentLocation:
+          description: Location where the incident occurred
+          example: "123 Main St, Springfield, IL"
+          maxLength: 200
+          minLength: 5
+          type: string
+        description:
+          description: Detailed description of the incident
+          example: Water damage to basement due to pipe burst
+          maxLength: 1000
+          minLength: 10
+          type: string
+        claimAmount:
+          description: Claimed amount in USD
+          example: 5000.0
+          format: double
+          maximum: 1000000
+          minimum: 0.01
+          type: number
+      required:
+      - claimAmount
+      - description
+      - incidentDate
+      - incidentLocation
+      type: object
+    UpdateClaimRequest:
+      properties:
+        status:
+          $ref: "#/components/schemas/ClaimStatus"
+        description:
+          description: Updated description of the incident
+          example: Water damage to basement due to pipe burst - updated with adjuster
+            notes
+          maxLength: 2000
+          minLength: 10
+          type: string
+      type: object
+    ClaimResponse:
+      example:
+        createdAt: 2026-02-17T10:30:00Z
+        claimAmount: 5000.0
+        description: Water damage to basement due to pipe burst
+        claimId: 660e8400-e29b-41d4-a716-446655440001
+        incidentDate: 2026-02-15
+        userId: 550e8400-e29b-41d4-a716-446655440000
+        incidentLocation: "123 Main St, Springfield, IL"
+        status: SUBMITTED
+        updatedAt: 2026-02-17T10:30:00Z
+      properties:
+        claimId:
+          description: Unique claim identifier
+          example: 660e8400-e29b-41d4-a716-446655440001
+          format: uuid
+          type: string
+        userId:
+          description: ID of the user who submitted the claim
+          example: 550e8400-e29b-41d4-a716-446655440000
+          format: uuid
+          type: string
+        incidentDate:
+          description: Date of the incident
+          example: 2026-02-15
+          format: date
+          type: string
+        incidentLocation:
+          description: Location where the incident occurred
+          example: "123 Main St, Springfield, IL"
+          type: string
+        description:
+          description: Description of the incident
+          example: Water damage to basement due to pipe burst
+          type: string
+        claimAmount:
+          description: Claimed amount in USD
+          example: 5000.0
+          format: double
+          type: number
+        status:
+          $ref: "#/components/schemas/ClaimStatus"
+        createdAt:
+          description: Claim creation timestamp
+          example: 2026-02-17T10:30:00Z
+          format: date-time
+          type: string
+        updatedAt:
+          description: Last update timestamp
+          example: 2026-02-17T10:30:00Z
+          format: date-time
+          type: string
+      required:
+      - claimAmount
+      - claimId
+      - createdAt
+      - description
+      - incidentDate
+      - incidentLocation
+      - status
+      - updatedAt
+      - userId
+      type: object
+    ClaimSummaryResponse:
+      example:
+        createdAt: 2026-02-17T10:30:00Z
+        claimAmount: 5000.0
+        description: Water damage to basement due to pipe burst
+        claimId: 660e8400-e29b-41d4-a716-446655440001
+        incidentDate: 2026-02-15
+        status: SUBMITTED
+      properties:
+        claimId:
+          description: Unique claim identifier
+          example: 660e8400-e29b-41d4-a716-446655440001
+          format: uuid
+          type: string
+        incidentDate:
+          description: Date of the incident
+          example: 2026-02-15
+          format: date
+          type: string
+        description:
+          description: Truncated description (first 100 characters)
+          example: Water damage to basement due to pipe burst
+          maxLength: 100
+          type: string
+        claimAmount:
+          description: Claimed amount in USD
+          example: 5000.0
+          format: double
+          type: number
+        status:
+          $ref: "#/components/schemas/ClaimStatus"
+        createdAt:
+          description: Claim creation timestamp
+          example: 2026-02-17T10:30:00Z
+          format: date-time
+          type: string
+      required:
+      - claimAmount
+      - claimId
+      - createdAt
+      - description
+      - incidentDate
+      - status
+      type: object
+    ClaimStatus:
+      description: Current status of the claim
+      enum:
+      - SUBMITTED
+      - UNDER_REVIEW
+      - APPROVED
+      - REJECTED
+      - CLOSED
+      type: string
+    AdminClaimResponse:
+      example:
+        createdAt: 2026-02-17T10:30:00Z
+        claimAmount: 5000.0
+        description: Water damage to basement due to pipe burst
+        userEmail: jane.doe@example.com
+        claimId: 660e8400-e29b-41d4-a716-446655440001
+        userName: Jane Doe
+        incidentDate: 2026-02-15
+        userId: 550e8400-e29b-41d4-a716-446655440000
+        incidentLocation: "123 Main St, Springfield, IL"
+        status: SUBMITTED
+        updatedAt: 2026-02-17T10:30:00Z
+      properties:
+        claimId:
+          description: Unique claim identifier
+          example: 660e8400-e29b-41d4-a716-446655440001
+          format: uuid
+          type: string
+        userId:
+          description: ID of the user who submitted the claim
+          example: 550e8400-e29b-41d4-a716-446655440000
+          format: uuid
+          type: string
+        userName:
+          description: User's full name (enriched from users table)
+          example: Jane Doe
+          type: string
+        userEmail:
+          description: User's email address (enriched from users table)
+          example: jane.doe@example.com
+          type: string
+        incidentDate:
+          description: Date of the incident
+          example: 2026-02-15
+          format: date
+          type: string
+        incidentLocation:
+          description: Location where the incident occurred
+          example: "123 Main St, Springfield, IL"
+          type: string
+        description:
+          description: Description of the incident
+          example: Water damage to basement due to pipe burst
+          type: string
+        claimAmount:
+          description: Claimed amount in USD
+          example: 5000.0
+          format: double
+          type: number
+        status:
+          $ref: "#/components/schemas/ClaimStatus"
+        createdAt:
+          description: Claim creation timestamp
+          example: 2026-02-17T10:30:00Z
+          format: date-time
+          type: string
+        updatedAt:
+          description: Last update timestamp
+          example: 2026-02-17T10:30:00Z
+          format: date-time
+          type: string
+      required:
+      - claimAmount
+      - claimId
+      - createdAt
+      - description
+      - incidentDate
+      - incidentLocation
+      - status
+      - updatedAt
+      - userEmail
+      - userId
+      - userName
+      type: object
+    UpdateClaimStatusRequest:
+      properties:
+        newStatus:
+          $ref: "#/components/schemas/ClaimStatus"
+      required:
+      - newStatus
+      type: object
+    DashboardStatsResponse:
+      example:
+        totalUsers: 50
+        queryTimeMs: 12
+        cacheHit: true
+        totalClaims: 142
+        claimsByStatus:
+          SUBMITTED: 45
+          UNDER_REVIEW: 32
+          APPROVED: 50
+          REJECTED: 15
+          CLOSED: 0
+      properties:
+        totalUsers:
+          description: Total number of users in the system
+          example: 50
+          type: integer
+        totalClaims:
+          description: Total number of claims in the system
+          example: 142
+          type: integer
+        claimsByStatus:
+          additionalProperties:
+            type: integer
+          description: Count of claims grouped by status
+          example:
+            SUBMITTED: 45
+            UNDER_REVIEW: 32
+            APPROVED: 50
+            REJECTED: 15
+            CLOSED: 0
+          type: object
+        cacheHit:
+          description: Whether data was retrieved from Redis cache (true) or database
+            (false)
+          example: true
+          type: boolean
+        queryTimeMs:
+          description: Time taken to fetch data in milliseconds (for training visibility)
+          example: 12
+          type: integer
+      required:
+      - cacheHit
+      - claimsByStatus
+      - queryTimeMs
+      - totalClaims
+      - totalUsers
+      type: object
+    ProblemDetail:
+      example:
+        instance: /api/claims
+        detail: User ID is required
+        type: https://api.demo-app.com/errors/validation-error
+        title: Validation Error
+        status: 400
+      properties:
+        type:
+          description: A URI reference that identifies the problem type
+          example: https://api.demo-app.com/errors/validation-error
+          format: uri
+          type: string
+        title:
+          description: "A short, human-readable summary of the problem type"
+          example: Validation Error
+          type: string
+        status:
+          description: The HTTP status code
+          example: 400
+          type: integer
+        detail:
+          description: A human-readable explanation specific to this occurrence
+          example: User ID is required
+          type: string
+        instance:
+          description: A URI reference that identifies the specific occurrence
+          example: /api/claims
+          type: string
+      required:
+      - detail
+      - status
+      - title
+      - type
+      type: object
+  securitySchemes:
+    bearerAuth:
+      bearerFormat: JWT
+      description: OAuth 2.0 bearer token from Keycloak
+      scheme: bearer
+      type: http
+

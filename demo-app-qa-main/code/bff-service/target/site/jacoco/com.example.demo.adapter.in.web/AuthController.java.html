@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuthController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bff-service</a> &gt; <a href="index.source.html" class="el_package">com.example.demo.adapter.in.web</a> &gt; <span class="el_source">AuthController.java</span></div><h1>AuthController.java</h1><pre class="source lang-java linenums">package com.example.demo.adapter.in.web;
+
+import com.example.bff.adapter.in.web.generated.AuthenticationApi;
+import com.example.bff.adapter.in.web.generated.model.LoginRequestDTO;
+import com.example.bff.adapter.in.web.generated.model.SignupRequestDTO;
+import com.example.bff.adapter.in.web.generated.model.UserResponseDTO;
+import com.example.bff.adapter.in.web.generated.model.UserRoleDTO;
+import com.example.demo.application.auth.LoginCommand;
+import com.example.demo.application.auth.LoginResult;
+import com.example.demo.application.auth.LoginUseCase;
+import com.example.demo.application.auth.LogoutUseCase;
+import com.example.demo.application.auth.RefreshTokenUseCase;
+import com.example.demo.application.auth.SignupCommand;
+import com.example.demo.application.auth.SignupResult;
+import com.example.demo.application.auth.SignupUseCase;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.time.Duration;
+import java.util.Arrays;
+
+@RestController
+public class AuthController implements AuthenticationApi {
+
+    private static final String ACCESS_TOKEN_COOKIE = &quot;access_token&quot;;
+    private static final String REFRESH_TOKEN_COOKIE = &quot;refresh_token&quot;;
+<span class="fc" id="L33">    private static final Duration ACCESS_COOKIE_MAX_AGE = Duration.ofMinutes(5);</span>
+<span class="fc" id="L34">    private static final Duration REFRESH_COOKIE_MAX_AGE = Duration.ofMinutes(30);</span>
+
+    private final SignupUseCase signupUseCase;
+    private final LoginUseCase loginUseCase;
+    private final RefreshTokenUseCase refreshTokenUseCase;
+    private final LogoutUseCase logoutUseCase;
+    private final HttpServletRequest httpServletRequest;
+    private final HttpServletResponse httpServletResponse;
+
+    public AuthController(
+            SignupUseCase signupUseCase,
+            LoginUseCase loginUseCase,
+            RefreshTokenUseCase refreshTokenUseCase,
+            LogoutUseCase logoutUseCase,
+            HttpServletRequest httpServletRequest,
+            HttpServletResponse httpServletResponse
+<span class="fc" id="L50">    ) {</span>
+<span class="fc" id="L51">        this.signupUseCase = signupUseCase;</span>
+<span class="fc" id="L52">        this.loginUseCase = loginUseCase;</span>
+<span class="fc" id="L53">        this.refreshTokenUseCase = refreshTokenUseCase;</span>
+<span class="fc" id="L54">        this.logoutUseCase = logoutUseCase;</span>
+<span class="fc" id="L55">        this.httpServletRequest = httpServletRequest;</span>
+<span class="fc" id="L56">        this.httpServletResponse = httpServletResponse;</span>
+<span class="fc" id="L57">    }</span>
+
+    @Override
+    public ResponseEntity&lt;UserResponseDTO&gt; signup(SignupRequestDTO signupRequestDTO) {
+<span class="fc" id="L61">        var command = new SignupCommand(</span>
+<span class="fc" id="L62">                signupRequestDTO.getEmail(),</span>
+<span class="fc" id="L63">                signupRequestDTO.getPassword(),</span>
+<span class="fc" id="L64">                signupRequestDTO.getName()</span>
+        );
+
+<span class="fc" id="L67">        var result = signupUseCase.signup(command);</span>
+
+<span class="fc" id="L69">        return ResponseEntity.status(HttpStatus.CREATED).body(toUserResponseDTO(result));</span>
+    }
+
+    @Override
+    public ResponseEntity&lt;UserResponseDTO&gt; login(LoginRequestDTO loginRequestDTO) {
+<span class="fc" id="L74">        var command = new LoginCommand(</span>
+<span class="fc" id="L75">                loginRequestDTO.getEmail(),</span>
+<span class="fc" id="L76">                loginRequestDTO.getPassword()</span>
+        );
+
+<span class="fc" id="L79">        var result = loginUseCase.login(command);</span>
+<span class="fc" id="L80">        setTokenCookies(result.accessToken(), result.refreshToken());</span>
+<span class="fc" id="L81">        return ResponseEntity.ok(toUserResponseDTO(result));</span>
+    }
+
+    @Override
+    public ResponseEntity&lt;Void&gt; refresh() {
+<span class="fc" id="L86">        var refreshToken = extractRefreshTokenFromCookies();</span>
+
+<span class="fc bfc" id="L88" title="All 2 branches covered.">        if (refreshToken == null) {</span>
+<span class="fc" id="L89">            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();</span>
+        }
+
+        try {
+<span class="fc" id="L93">            var result = refreshTokenUseCase.refresh(refreshToken);</span>
+
+<span class="fc" id="L95">            setTokenCookies(result.accessToken(), result.refreshToken());</span>
+<span class="fc" id="L96">            return ResponseEntity.noContent().build();</span>
+<span class="fc" id="L97">        } catch (com.example.demo.application.auth.InvalidCredentialsException e) {</span>
+<span class="fc" id="L98">            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();</span>
+        }
+    }
+
+    @Override
+    public ResponseEntity&lt;Void&gt; logout() {
+<span class="fc" id="L104">        var accessToken = extractAccessTokenFromCookies();</span>
+
+<span class="pc bpc" id="L106" title="1 of 2 branches missed.">        if (accessToken != null) {</span>
+<span class="nc" id="L107">            logoutUseCase.logout(accessToken);</span>
+        }
+
+<span class="fc" id="L110">        var clearAccessCookie = ResponseCookie.from(ACCESS_TOKEN_COOKIE, &quot;&quot;)</span>
+<span class="fc" id="L111">                .httpOnly(true)</span>
+<span class="fc" id="L112">                .secure(false)</span>
+<span class="fc" id="L113">                .sameSite(&quot;Strict&quot;)</span>
+<span class="fc" id="L114">                .path(&quot;/&quot;)</span>
+<span class="fc" id="L115">                .maxAge(0)</span>
+<span class="fc" id="L116">                .build();</span>
+
+<span class="fc" id="L118">        var clearRefreshCookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE, &quot;&quot;)</span>
+<span class="fc" id="L119">                .httpOnly(true)</span>
+<span class="fc" id="L120">                .secure(false)</span>
+<span class="fc" id="L121">                .sameSite(&quot;Strict&quot;)</span>
+<span class="fc" id="L122">                .path(&quot;/&quot;)</span>
+<span class="fc" id="L123">                .maxAge(0)</span>
+<span class="fc" id="L124">                .build();</span>
+
+<span class="fc" id="L126">        httpServletResponse.addHeader(HttpHeaders.SET_COOKIE, clearAccessCookie.toString());</span>
+<span class="fc" id="L127">        httpServletResponse.addHeader(HttpHeaders.SET_COOKIE, clearRefreshCookie.toString());</span>
+
+<span class="fc" id="L129">        return ResponseEntity.noContent().build();</span>
+    }
+
+    private void setTokenCookies(String accessToken, String refreshToken) {
+<span class="fc" id="L133">        var accessCookie = ResponseCookie.from(ACCESS_TOKEN_COOKIE, accessToken)</span>
+<span class="fc" id="L134">                .httpOnly(true)</span>
+<span class="fc" id="L135">                .secure(false)</span>
+<span class="fc" id="L136">                .sameSite(&quot;Strict&quot;)</span>
+<span class="fc" id="L137">                .path(&quot;/&quot;)</span>
+<span class="fc" id="L138">                .maxAge(ACCESS_COOKIE_MAX_AGE)</span>
+<span class="fc" id="L139">                .build();</span>
+
+<span class="fc" id="L141">        var refreshCookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE, refreshToken)</span>
+<span class="fc" id="L142">                .httpOnly(true)</span>
+<span class="fc" id="L143">                .secure(false)</span>
+<span class="fc" id="L144">                .sameSite(&quot;Strict&quot;)</span>
+<span class="fc" id="L145">                .path(&quot;/&quot;)</span>
+<span class="fc" id="L146">                .maxAge(REFRESH_COOKIE_MAX_AGE)</span>
+<span class="fc" id="L147">                .build();</span>
+
+<span class="fc" id="L149">        httpServletResponse.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());</span>
+<span class="fc" id="L150">        httpServletResponse.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());</span>
+<span class="fc" id="L151">    }</span>
+
+    private String extractAccessTokenFromCookies() {
+<span class="fc bfc" id="L154" title="All 2 branches covered.">        if (httpServletRequest.getCookies() == null) {</span>
+<span class="fc" id="L155">            return null;</span>
+        }
+<span class="fc" id="L157">        return Arrays.stream(httpServletRequest.getCookies())</span>
+<span class="fc" id="L158">                .filter(cookie -&gt; ACCESS_TOKEN_COOKIE.equals(cookie.getName()))</span>
+<span class="fc" id="L159">                .map(Cookie::getValue)</span>
+<span class="fc" id="L160">                .findFirst()</span>
+<span class="fc" id="L161">                .orElse(null);</span>
+    }
+
+    private String extractRefreshTokenFromCookies() {
+<span class="fc bfc" id="L165" title="All 2 branches covered.">        if (httpServletRequest.getCookies() == null) {</span>
+<span class="fc" id="L166">            return null;</span>
+        }
+<span class="fc" id="L168">        return Arrays.stream(httpServletRequest.getCookies())</span>
+<span class="fc" id="L169">                .filter(cookie -&gt; REFRESH_TOKEN_COOKIE.equals(cookie.getName()))</span>
+<span class="fc" id="L170">                .map(Cookie::getValue)</span>
+<span class="fc" id="L171">                .findFirst()</span>
+<span class="fc" id="L172">                .orElse(null);</span>
+    }
+
+    private UserResponseDTO toUserResponseDTO(SignupResult result) {
+<span class="fc" id="L176">        return createUserResponseDTO(result.userId(), result.email(), result.name(), result.role(), result.createdAt());</span>
+    }
+
+    private UserResponseDTO toUserResponseDTO(LoginResult result) {
+<span class="fc" id="L180">        return createUserResponseDTO(result.userId(), result.email(), result.name(), result.role(), result.createdAt());</span>
+    }
+
+    private UserResponseDTO createUserResponseDTO(
+            java.util.UUID userId,
+            String email,
+            String name,
+            String role,
+            java.time.OffsetDateTime createdAt
+    ) {
+<span class="fc" id="L190">        var response = new UserResponseDTO();</span>
+<span class="fc" id="L191">        response.setUserId(userId);</span>
+<span class="fc" id="L192">        response.setEmail(email);</span>
+<span class="fc" id="L193">        response.setName(name);</span>
+<span class="fc" id="L194">        response.setRole(UserRoleDTO.fromValue(role));</span>
+<span class="fc" id="L195">        response.setCreatedAt(createdAt);</span>
+<span class="fc" id="L196">        return response;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DashboardController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">claims-service</a> &gt; <a href="index.source.html" class="el_package">com.example.demo.adapter.in.web</a> &gt; <span class="el_source">DashboardController.java</span></div><h1>DashboardController.java</h1><pre class="source lang-java linenums">package com.example.demo.adapter.in.web;
+
+import com.example.claims.adapter.in.web.generated.DashboardApi;
+import com.example.claims.adapter.in.web.generated.model.DashboardStatsResponseDTO;
+import com.example.demo.adapter.out.cache.DashboardStatsCache;
+import com.example.demo.application.usecases.GetDashboardStatsQuery;
+import com.example.demo.application.usecases.GetDashboardStatsUseCase;
+import com.example.demo.domain.dashboard.DashboardStats;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
+/**
+ * REST controller for admin dashboard endpoints.
+ * Coordinates caching strategy and delegates business logic to use case.
+ */
+@RestController
+public class DashboardController implements DashboardApi {
+
+    private static final long CACHE_TTL_SECONDS = 300;
+
+    private final GetDashboardStatsUseCase getDashboardStatsUseCase;
+    private final DashboardStatsCache dashboardStatsCache;
+
+    public DashboardController(GetDashboardStatsUseCase getDashboardStatsUseCase,
+<span class="fc" id="L30">                               DashboardStatsCache dashboardStatsCache) {</span>
+<span class="fc" id="L31">        this.getDashboardStatsUseCase = getDashboardStatsUseCase;</span>
+<span class="fc" id="L32">        this.dashboardStatsCache = dashboardStatsCache;</span>
+<span class="fc" id="L33">    }</span>
+
+    @Override
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;DashboardStatsResponseDTO&gt; getDashboardStats(Optional&lt;Boolean&gt; bypassCache) {
+<span class="fc" id="L38">        long startTime = System.currentTimeMillis();</span>
+<span class="fc" id="L39">        boolean cacheHit = false;</span>
+        DashboardStats stats;
+
+<span class="fc" id="L42">        boolean shouldBypassCache = bypassCache.orElse(false);</span>
+
+<span class="fc bfc" id="L44" title="All 2 branches covered.">        if (!shouldBypassCache) {</span>
+<span class="fc" id="L45">            var cachedStats = dashboardStatsCache.get();</span>
+<span class="fc bfc" id="L46" title="All 2 branches covered.">            if (cachedStats.isPresent()) {</span>
+<span class="fc" id="L47">                stats = cachedStats.get();</span>
+<span class="fc" id="L48">                cacheHit = true;</span>
+            } else {
+<span class="fc" id="L50">                stats = getDashboardStatsUseCase.execute(new GetDashboardStatsQuery(false));</span>
+<span class="fc" id="L51">                dashboardStatsCache.put(stats, CACHE_TTL_SECONDS);</span>
+            }
+<span class="fc" id="L53">        } else {</span>
+<span class="fc" id="L54">            stats = getDashboardStatsUseCase.execute(new GetDashboardStatsQuery(true));</span>
+        }
+
+<span class="fc" id="L57">        long queryTimeMs = System.currentTimeMillis() - startTime;</span>
+
+<span class="fc" id="L59">        DashboardStatsResponseDTO response = mapToResponse(stats, cacheHit, queryTimeMs);</span>
+<span class="fc" id="L60">        return ResponseEntity.ok(response);</span>
+    }
+
+    @Override
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;Void&gt; flushDashboardCache() {
+<span class="fc" id="L66">        dashboardStatsCache.evict();</span>
+<span class="fc" id="L67">        return ResponseEntity.noContent().build();</span>
+    }
+
+    private DashboardStatsResponseDTO mapToResponse(DashboardStats stats, boolean cacheHit, long queryTimeMs) {
+<span class="fc" id="L71">        Map&lt;String, Integer&gt; claimsByStatusMap = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L72">        stats.claimsByStatus().forEach((status, count) -&gt;</span>
+<span class="fc" id="L73">            claimsByStatusMap.put(status.name(), count)</span>
+        );
+
+<span class="fc" id="L76">        return new DashboardStatsResponseDTO()</span>
+<span class="fc" id="L77">                .totalUsers(stats.totalUsers())</span>
+<span class="fc" id="L78">                .totalClaims(stats.totalClaims())</span>
+<span class="fc" id="L79">                .claimsByStatus(claimsByStatusMap)</span>
+<span class="fc" id="L80">                .cacheHit(cacheHit)</span>
+<span class="fc" id="L81">                .queryTimeMs((int) queryTimeMs);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

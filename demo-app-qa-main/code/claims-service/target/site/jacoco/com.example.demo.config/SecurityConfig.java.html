@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SecurityConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">claims-service</a> &gt; <a href="index.source.html" class="el_package">com.example.demo.config</a> &gt; <span class="el_source">SecurityConfig.java</span></div><h1>SecurityConfig.java</h1><pre class="source lang-java linenums">package com.example.demo.config;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.convert.converter.Converter;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.web.SecurityFilterChain;
+
+import java.time.Duration;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * Security configuration for Claims Service.
+ *
+ * &lt;p&gt;Enforces JWT-based authentication for all /api/** endpoints.
+ * Extracts roles from Keycloak realm_access.roles claim and maps to Spring Security authorities.
+ *
+ * &lt;p&gt;RBAC Enforcement Pattern (for future endpoint implementations):
+ * &lt;ul&gt;
+ *   &lt;li&gt;Use @PreAuthorize(&quot;hasRole('ADMIN')&quot;) for admin-only endpoints&lt;/li&gt;
+ *   &lt;li&gt;Use @PreAuthorize(&quot;hasRole('CLAIMANT')&quot;) for claimant-only endpoints&lt;/li&gt;
+ *   &lt;li&gt;For user-specific data: Extract userId from JWT subject and validate ownership in business logic&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * @see org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity
+ */
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity
+<span class="fc" id="L48">public class SecurityConfig {</span>
+
+<span class="fc" id="L50">    private static final Logger LOG = LoggerFactory.getLogger(SecurityConfig.class);</span>
+
+    @org.springframework.beans.factory.annotation.Value(&quot;${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}&quot;)
+    private String jwkSetUri;
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+<span class="nc" id="L57">        http</span>
+<span class="nc" id="L58">                .csrf(AbstractHttpConfigurer::disable)</span>
+<span class="nc" id="L59">                .sessionManagement(session -&gt; session</span>
+<span class="nc" id="L60">                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))</span>
+<span class="nc" id="L61">                .authorizeHttpRequests(auth -&gt; auth</span>
+<span class="nc" id="L62">                        .requestMatchers(&quot;/actuator/**&quot;).permitAll()</span>
+<span class="nc" id="L63">                        .requestMatchers(&quot;/api/**&quot;).authenticated()</span>
+<span class="nc" id="L64">                        .anyRequest().permitAll())</span>
+<span class="nc" id="L65">                .oauth2ResourceServer(oauth2 -&gt; oauth2</span>
+<span class="nc" id="L66">                        .jwt(jwt -&gt; jwt</span>
+<span class="nc" id="L67">                                .jwtAuthenticationConverter(jwtAuthenticationConverter())));</span>
+
+<span class="nc" id="L69">        return http.build();</span>
+    }
+
+    @Bean
+    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+<span class="fc" id="L74">        var jwtAuthenticationConverter = new JwtAuthenticationConverter();</span>
+<span class="fc" id="L75">        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(keycloakGrantedAuthoritiesConverter());</span>
+<span class="fc" id="L76">        return jwtAuthenticationConverter;</span>
+    }
+
+    @Bean
+    public JwtDecoder jwtDecoder() {
+<span class="nc" id="L81">        NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();</span>
+<span class="nc" id="L82">        var timestampValidator = new JwtTimestampValidator(Duration.ofSeconds(30));</span>
+<span class="nc" id="L83">        decoder.setJwtValidator(timestampValidator);</span>
+<span class="nc" id="L84">        return decoder;</span>
+    }
+
+    private Converter&lt;Jwt, Collection&lt;GrantedAuthority&gt;&gt; keycloakGrantedAuthoritiesConverter() {
+<span class="fc" id="L88">        return jwt -&gt; {</span>
+<span class="fc" id="L89">            LOG.debug(&quot;DEBUG JWT: Processing JWT token&quot;);</span>
+<span class="fc" id="L90">            LOG.debug(&quot;DEBUG JWT: Subject: {}&quot;, jwt.getSubject());</span>
+<span class="fc" id="L91">            LOG.debug(&quot;DEBUG JWT: Issuer: {}&quot;, jwt.getIssuer());</span>
+<span class="fc" id="L92">            LOG.debug(&quot;DEBUG JWT: Audience: {}&quot;, jwt.getAudience());</span>
+<span class="fc" id="L93">            LOG.debug(&quot;DEBUG JWT: All claims: {}&quot;, jwt.getClaims().keySet());</span>
+
+<span class="fc" id="L95">            Map&lt;String, Object&gt; realmAccess = jwt.getClaim(&quot;realm_access&quot;);</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">            if (realmAccess == null) {</span>
+<span class="fc" id="L97">                LOG.debug(&quot;DEBUG JWT: No realm_access claim found&quot;);</span>
+<span class="fc" id="L98">                return Collections.emptyList();</span>
+            }
+
+            @SuppressWarnings(&quot;unchecked&quot;)
+<span class="fc" id="L102">            List&lt;String&gt; roles = (List&lt;String&gt;) realmAccess.get(&quot;roles&quot;);</span>
+<span class="fc bfc" id="L103" title="All 2 branches covered.">            if (roles == null) {</span>
+<span class="fc" id="L104">                LOG.debug(&quot;DEBUG JWT: No roles found in realm_access&quot;);</span>
+<span class="fc" id="L105">                return Collections.emptyList();</span>
+            }
+
+<span class="fc" id="L108">            LOG.debug(&quot;DEBUG JWT: Found roles: {}&quot;, roles);</span>
+<span class="fc" id="L109">            return roles.stream()</span>
+<span class="fc" id="L110">                    .map(role -&gt; new SimpleGrantedAuthority(&quot;ROLE_&quot; + role.toUpperCase(Locale.ROOT)))</span>
+<span class="fc" id="L111">                    .collect(Collectors.toList());</span>
+        };
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

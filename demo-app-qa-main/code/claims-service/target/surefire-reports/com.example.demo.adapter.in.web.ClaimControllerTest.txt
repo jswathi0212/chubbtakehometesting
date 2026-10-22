@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.example.demo.adapter.in.web.ClaimControllerTest
+-------------------------------------------------------------------------------
+Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 16.81 s -- in com.example.demo.adapter.in.web.ClaimControllerTest

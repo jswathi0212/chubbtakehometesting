@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClaimController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">claims-service</a> &gt; <a href="index.source.html" class="el_package">com.example.demo.adapter.in.web</a> &gt; <span class="el_source">ClaimController.java</span></div><h1>ClaimController.java</h1><pre class="source lang-java linenums">package com.example.demo.adapter.in.web;
+
+import com.example.claims.adapter.in.web.generated.model.ClaimResponseDTO;
+import com.example.claims.adapter.in.web.generated.model.ClaimSummaryResponseDTO;
+import com.example.claims.adapter.in.web.generated.model.CreateClaimRequestDTO;
+import com.example.demo.application.usecases.CreateClaimCommand;
+import com.example.demo.application.usecases.CreateClaimUseCase;
+import com.example.demo.application.usecases.GetClaimQuery;
+import com.example.demo.application.usecases.GetClaimUseCase;
+import com.example.demo.application.usecases.ListClaimsQuery;
+import com.example.demo.application.usecases.ListClaimsUseCase;
+import com.example.demo.domain.claim.Claim;
+import io.micrometer.tracing.Tracer;
+import jakarta.validation.Valid;
+import org.slf4j.MDC;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.math.BigDecimal;
+import java.net.URI;
+import java.util.List;
+import java.util.UUID;
+
+@RestController
+@RequestMapping(&quot;/api/claims&quot;)
+public class ClaimController {
+
+    private final CreateClaimUseCase createClaimUseCase;
+    private final GetClaimUseCase getClaimUseCase;
+    private final ListClaimsUseCase listClaimsUseCase;
+    private final ClaimWebMapper claimWebMapper;
+    private final Tracer tracer;
+
+    public ClaimController(CreateClaimUseCase createClaimUseCase,
+                           GetClaimUseCase getClaimUseCase,
+                           ListClaimsUseCase listClaimsUseCase,
+                           ClaimWebMapper claimWebMapper,
+<span class="fc" id="L45">                           Tracer tracer) {</span>
+<span class="fc" id="L46">        this.createClaimUseCase = createClaimUseCase;</span>
+<span class="fc" id="L47">        this.getClaimUseCase = getClaimUseCase;</span>
+<span class="fc" id="L48">        this.listClaimsUseCase = listClaimsUseCase;</span>
+<span class="fc" id="L49">        this.claimWebMapper = claimWebMapper;</span>
+<span class="fc" id="L50">        this.tracer = tracer;</span>
+<span class="fc" id="L51">    }</span>
+
+    @PostMapping
+    public ResponseEntity&lt;ClaimResponseDTO&gt; createClaim(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody CreateClaimRequestDTO request) {
+
+<span class="fc" id="L58">        UUID userId = UUID.fromString(jwt.getSubject());</span>
+<span class="fc" id="L59">        String correlationId = MDC.get(&quot;correlationId&quot;);</span>
+<span class="fc" id="L60">        MDC.put(&quot;userId&quot;, userId.toString());</span>
+
+        // Add span tags for distributed tracing
+<span class="fc" id="L63">        var currentSpan = tracer.currentSpan();</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">        if (currentSpan != null) {</span>
+<span class="fc" id="L65">            currentSpan.tag(&quot;userId&quot;, userId.toString());</span>
+<span class="pc bpc" id="L66" title="1 of 2 branches missed.">            if (correlationId != null) {</span>
+<span class="nc" id="L67">                currentSpan.tag(&quot;correlationId&quot;, correlationId);</span>
+            }
+        }
+
+<span class="fc" id="L71">        CreateClaimCommand command = new CreateClaimCommand(</span>
+                userId,
+<span class="fc" id="L73">                request.getIncidentDate(),</span>
+<span class="fc" id="L74">                request.getIncidentLocation(),</span>
+<span class="fc" id="L75">                request.getDescription(),</span>
+<span class="fc" id="L76">                BigDecimal.valueOf(request.getClaimAmount())</span>
+        );
+
+<span class="fc" id="L79">        Claim claim = createClaimUseCase.execute(command);</span>
+<span class="fc" id="L80">        MDC.put(&quot;claimId&quot;, claim.getClaimId().toString());</span>
+
+        // Add claimId to span after creation
+<span class="fc bfc" id="L83" title="All 2 branches covered.">        if (currentSpan != null) {</span>
+<span class="fc" id="L84">            currentSpan.tag(&quot;claimId&quot;, claim.getClaimId().toString());</span>
+        }
+
+<span class="fc" id="L87">        URI location = URI.create(&quot;/api/claims/&quot; + claim.getClaimId());</span>
+<span class="fc" id="L88">        return ResponseEntity.created(location).body(claimWebMapper.toResponse(claim));</span>
+    }
+
+    @GetMapping(&quot;/{claimId}&quot;)
+    public ResponseEntity&lt;ClaimResponseDTO&gt; getClaim(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID claimId) {
+
+<span class="fc" id="L96">        UUID userId = UUID.fromString(jwt.getSubject());</span>
+<span class="fc" id="L97">        String correlationId = MDC.get(&quot;correlationId&quot;);</span>
+<span class="fc" id="L98">        MDC.put(&quot;userId&quot;, userId.toString());</span>
+<span class="fc" id="L99">        MDC.put(&quot;claimId&quot;, claimId.toString());</span>
+
+        // Add span tags for distributed tracing
+<span class="fc" id="L102">        var currentSpan = tracer.currentSpan();</span>
+<span class="pc bpc" id="L103" title="1 of 2 branches missed.">        if (currentSpan != null) {</span>
+<span class="nc" id="L104">            currentSpan.tag(&quot;userId&quot;, userId.toString());</span>
+<span class="nc" id="L105">            currentSpan.tag(&quot;claimId&quot;, claimId.toString());</span>
+<span class="nc bnc" id="L106" title="All 2 branches missed.">            if (correlationId != null) {</span>
+<span class="nc" id="L107">                currentSpan.tag(&quot;correlationId&quot;, correlationId);</span>
+            }
+        }
+
+<span class="fc" id="L111">        Claim claim = getClaimUseCase.execute(new GetClaimQuery(claimId, userId));</span>
+<span class="fc" id="L112">        return ResponseEntity.ok(claimWebMapper.toResponse(claim));</span>
+    }
+
+    @GetMapping
+    public ResponseEntity&lt;List&lt;ClaimSummaryResponseDTO&gt;&gt; listClaims(
+            @AuthenticationPrincipal Jwt jwt) {
+
+<span class="fc" id="L119">        UUID userId = UUID.fromString(jwt.getSubject());</span>
+<span class="fc" id="L120">        String correlationId = MDC.get(&quot;correlationId&quot;);</span>
+<span class="fc" id="L121">        MDC.put(&quot;userId&quot;, userId.toString());</span>
+
+        // Add span tags for distributed tracing
+<span class="fc" id="L124">        var currentSpan = tracer.currentSpan();</span>
+<span class="fc bfc" id="L125" title="All 2 branches covered.">        if (currentSpan != null) {</span>
+<span class="fc" id="L126">            currentSpan.tag(&quot;userId&quot;, userId.toString());</span>
+<span class="pc bpc" id="L127" title="1 of 2 branches missed.">            if (correlationId != null) {</span>
+<span class="nc" id="L128">                currentSpan.tag(&quot;correlationId&quot;, correlationId);</span>
+            }
+        }
+
+<span class="fc" id="L132">        List&lt;Claim&gt; claims = listClaimsUseCase.execute(new ListClaimsQuery(userId));</span>
+
+<span class="fc" id="L134">        List&lt;ClaimSummaryResponseDTO&gt; response = claims.stream()</span>
+<span class="fc" id="L135">                .map(claimWebMapper::toSummaryResponse)</span>
+<span class="fc" id="L136">                .toList();</span>
+
+<span class="fc" id="L138">        return ResponseEntity.ok(response);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

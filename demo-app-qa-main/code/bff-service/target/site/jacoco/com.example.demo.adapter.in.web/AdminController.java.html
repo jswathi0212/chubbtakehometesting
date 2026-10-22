@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AdminController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bff-service</a> &gt; <a href="index.source.html" class="el_package">com.example.demo.adapter.in.web</a> &gt; <span class="el_source">AdminController.java</span></div><h1>AdminController.java</h1><pre class="source lang-java linenums">package com.example.demo.adapter.in.web;
+
+import com.example.bff.adapter.in.web.generated.AdminDashboardApi;
+import com.example.bff.adapter.in.web.generated.model.ClaimResponseDTO;
+import com.example.bff.adapter.in.web.generated.model.ClaimStatusDTO;
+import com.example.bff.adapter.in.web.generated.model.DashboardStatsResponseDTO;
+import com.example.bff.adapter.in.web.generated.model.UpdateClaimStatusRequestDTO;
+import com.example.bff.adapter.in.web.generated.model.UserResponseDTO;
+import com.example.bff.adapter.out.claims.ApiClient;
+import com.example.bff.adapter.out.claims.ApiException;
+import com.example.demo.application.auth.ServiceAccountTokenProvider;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+@RestController
+public class AdminController implements AdminDashboardApi {
+
+    private final com.example.bff.adapter.out.claims.generated.DashboardApi claimsDashboardApi;
+    private final com.example.bff.adapter.out.claims.generated.AdminClaimsApi claimsAdminClaimsApi;
+    private final com.example.bff.adapter.out.claims.generated.UsersApi claimsUsersApi;
+    private final ApiClient apiClient;
+    private final ServiceAccountTokenProvider serviceAccountTokenProvider;
+    private final AdminClaimResponseMapper adminClaimResponseMapper;
+
+    public AdminController(
+            @Value(&quot;${claims-service.url}&quot;) String claimsServiceUrl,
+            ServiceAccountTokenProvider serviceAccountTokenProvider,
+<span class="fc" id="L35">            AdminClaimResponseMapper adminClaimResponseMapper) {</span>
+<span class="fc" id="L36">        this.apiClient = new ApiClient();</span>
+<span class="fc" id="L37">        this.apiClient.setBasePath(claimsServiceUrl);</span>
+<span class="fc" id="L38">        this.claimsDashboardApi = new com.example.bff.adapter.out.claims.generated.DashboardApi(apiClient);</span>
+<span class="fc" id="L39">        this.claimsAdminClaimsApi = new com.example.bff.adapter.out.claims.generated.AdminClaimsApi(apiClient);</span>
+<span class="fc" id="L40">        this.claimsUsersApi = new com.example.bff.adapter.out.claims.generated.UsersApi(apiClient);</span>
+<span class="fc" id="L41">        this.serviceAccountTokenProvider = serviceAccountTokenProvider;</span>
+<span class="fc" id="L42">        this.adminClaimResponseMapper = adminClaimResponseMapper;</span>
+<span class="fc" id="L43">    }</span>
+
+    @Override
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;DashboardStatsResponseDTO&gt; getDashboardStats(Optional&lt;Boolean&gt; bypassCache) {
+<span class="fc" id="L48">        setServiceAccountBearerToken();</span>
+        try {
+<span class="fc" id="L50">            var claimsResponse = claimsDashboardApi.getDashboardStats(bypassCache.orElse(false));</span>
+<span class="fc" id="L51">            var response = new DashboardStatsResponseDTO()</span>
+<span class="fc" id="L52">                    .totalUsers(claimsResponse.getTotalUsers())</span>
+<span class="fc" id="L53">                    .totalClaims(claimsResponse.getTotalClaims())</span>
+<span class="fc" id="L54">                    .claimsByStatus(claimsResponse.getClaimsByStatus())</span>
+<span class="fc" id="L55">                    .cacheHit(claimsResponse.getCacheHit())</span>
+<span class="fc" id="L56">                    .queryTimeMs(claimsResponse.getQueryTimeMs());</span>
+<span class="fc" id="L57">            return ResponseEntity.ok(response);</span>
+<span class="fc" id="L58">        } catch (ApiException exception) {</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">            if (exception.getCode() == 403) {</span>
+<span class="fc" id="L60">                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();</span>
+            }
+<span class="fc" id="L62">            throw new IllegalStateException(&quot;Claims Service call failed: &quot; + exception.getMessage(), exception);</span>
+        }
+    }
+
+    @Override
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;Void&gt; flushDashboardCache() {
+<span class="fc" id="L69">        setServiceAccountBearerToken();</span>
+        try {
+<span class="fc" id="L71">            claimsDashboardApi.flushDashboardCache();</span>
+<span class="fc" id="L72">            return ResponseEntity.noContent().build();</span>
+<span class="fc" id="L73">        } catch (ApiException exception) {</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">            if (exception.getCode() == 403) {</span>
+<span class="fc" id="L75">                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();</span>
+            }
+<span class="fc" id="L77">            throw new IllegalStateException(&quot;Claims Service call failed: &quot; + exception.getMessage(), exception);</span>
+        }
+    }
+
+    @Override
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;List&lt;UserResponseDTO&gt;&gt; listAllUsers() {
+<span class="fc" id="L84">        setUserBearerToken();</span>
+        try {
+<span class="fc" id="L86">            var claimsResponse = claimsUsersApi.listAllUsers();</span>
+<span class="fc" id="L87">            var response = claimsResponse.stream()</span>
+<span class="fc" id="L88">                    .map(user -&gt; new UserResponseDTO()</span>
+<span class="fc" id="L89">                            .userId(user.getUserId())</span>
+<span class="fc" id="L90">                            .email(user.getEmail())</span>
+<span class="fc" id="L91">                            .name(user.getName())</span>
+<span class="fc" id="L92">                            .role(com.example.bff.adapter.in.web.generated.model.UserRoleDTO.fromValue(user.getRole().getValue()))</span>
+<span class="fc" id="L93">                            .createdAt(user.getCreatedAt()))</span>
+<span class="fc" id="L94">                    .toList();</span>
+<span class="fc" id="L95">            return ResponseEntity.ok(response);</span>
+<span class="fc" id="L96">        } catch (ApiException exception) {</span>
+<span class="fc bfc" id="L97" title="All 2 branches covered.">            if (exception.getCode() == 403) {</span>
+<span class="fc" id="L98">                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();</span>
+            }
+<span class="fc" id="L100">            throw new IllegalStateException(&quot;Claims Service call failed: &quot; + exception.getMessage(), exception);</span>
+        }
+    }
+
+    @Override
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;List&lt;ClaimResponseDTO&gt;&gt; listAllClaims(Optional&lt;ClaimStatusDTO&gt; status, Optional&lt;UUID&gt; userId) {
+<span class="fc" id="L107">        setServiceAccountBearerToken();</span>
+        try {
+<span class="fc" id="L109">            com.example.bff.adapter.out.claims.generated.model.ClaimStatusDTO claimsStatus =</span>
+<span class="fc" id="L110">                    status.map(s -&gt; com.example.bff.adapter.out.claims.generated.model.ClaimStatusDTO.fromValue(s.getValue()))</span>
+<span class="fc" id="L111">                            .orElse(null);</span>
+
+<span class="fc" id="L113">            var claimsResponse = claimsAdminClaimsApi.listAllClaims(claimsStatus, userId.orElse(null));</span>
+<span class="fc" id="L114">            return ResponseEntity.ok(adminClaimResponseMapper.toClaimResponseList(claimsResponse));</span>
+<span class="fc" id="L115">        } catch (ApiException exception) {</span>
+<span class="fc bfc" id="L116" title="All 2 branches covered.">            if (exception.getCode() == 403) {</span>
+<span class="fc" id="L117">                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();</span>
+            }
+<span class="fc" id="L119">            throw new IllegalStateException(&quot;Claims Service call failed: &quot; + exception.getMessage(), exception);</span>
+        }
+    }
+
+    @Override
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;ClaimResponseDTO&gt; updateClaimStatus(UUID claimId, UpdateClaimStatusRequestDTO updateClaimStatusRequestDTO) {
+<span class="fc" id="L126">        setUserBearerToken();</span>
+        try {
+<span class="fc" id="L128">            var claimsRequest = new com.example.bff.adapter.out.claims.generated.model.UpdateClaimStatusRequestDTO()</span>
+<span class="fc" id="L129">                    .newStatus(com.example.bff.adapter.out.claims.generated.model.ClaimStatusDTO.fromValue(</span>
+<span class="fc" id="L130">                            updateClaimStatusRequestDTO.getNewStatus().getValue()));</span>
+
+<span class="fc" id="L132">            var claimsResponse = claimsAdminClaimsApi.updateClaimStatus(claimId, claimsRequest);</span>
+<span class="fc" id="L133">            return ResponseEntity.ok(adminClaimResponseMapper.toClaimResponse(claimsResponse));</span>
+<span class="fc" id="L134">        } catch (ApiException exception) {</span>
+<span class="fc bfc" id="L135" title="All 2 branches covered.">            if (exception.getCode() == 400) {</span>
+<span class="fc" id="L136">                return ResponseEntity.badRequest().build();</span>
+            }
+<span class="fc bfc" id="L138" title="All 2 branches covered.">            if (exception.getCode() == 403) {</span>
+<span class="fc" id="L139">                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();</span>
+            }
+<span class="fc bfc" id="L141" title="All 2 branches covered.">            if (exception.getCode() == 404) {</span>
+<span class="fc" id="L142">                return ResponseEntity.notFound().build();</span>
+            }
+<span class="fc" id="L144">            throw new IllegalStateException(&quot;Claims Service call failed: &quot; + exception.getMessage(), exception);</span>
+        }
+    }
+
+    private void setServiceAccountBearerToken() {
+<span class="fc" id="L149">        String token = serviceAccountTokenProvider.getServiceAccountToken();</span>
+<span class="fc" id="L150">        apiClient.setBearerToken(token);</span>
+<span class="fc" id="L151">    }</span>
+
+    private void setUserBearerToken() {
+        var authentication = org.springframework.security.core.context.SecurityContextHolder
+<span class="fc" id="L155">                .getContext().getAuthentication();</span>
+<span class="fc bfc" id="L156" title="All 4 branches covered.">        if (authentication != null &amp;&amp; authentication.getPrincipal() instanceof org.springframework.security.oauth2.jwt.Jwt jwt) {</span>
+<span class="fc" id="L157">            apiClient.setBearerToken(jwt.getTokenValue());</span>
+        } else {
+<span class="fc" id="L159">            throw new IllegalStateException(&quot;No user JWT token found in security context&quot;);</span>
+        }
+<span class="fc" id="L161">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AdminClaimsController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">claims-service</a> &gt; <a href="index.source.html" class="el_package">com.example.demo.adapter.in.web</a> &gt; <span class="el_source">AdminClaimsController.java</span></div><h1>AdminClaimsController.java</h1><pre class="source lang-java linenums">package com.example.demo.adapter.in.web;
+
+import com.example.claims.adapter.in.web.generated.AdminClaimsApi;
+import com.example.claims.adapter.in.web.generated.model.AdminClaimResponseDTO;
+import com.example.claims.adapter.in.web.generated.model.ClaimResponseDTO;
+import com.example.claims.adapter.in.web.generated.model.ClaimStatusDTO;
+import com.example.claims.adapter.in.web.generated.model.UpdateClaimStatusRequestDTO;
+import com.example.demo.application.usecases.ListAllClaimsQuery;
+import com.example.demo.application.usecases.ListAllClaimsUseCase;
+import com.example.demo.application.usecases.UpdateClaimStatusCommand;
+import com.example.demo.application.usecases.UpdateClaimStatusUseCase;
+import com.example.demo.domain.claim.Claim;
+import com.example.demo.domain.claim.ClaimStatus;
+import com.example.demo.user.domain.User;
+import com.example.demo.user.domain.UserId;
+import com.example.demo.user.domain.UserRepository;
+import io.micrometer.tracing.Tracer;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+/**
+ * REST controller for admin claims management endpoints.
+ * Thin adapter that delegates to use cases and enriches responses with user data.
+ */
+@RestController
+@RequiredArgsConstructor
+<span class="fc" id="L36">@Slf4j</span>
+public class AdminClaimsController implements AdminClaimsApi {
+
+    private final ListAllClaimsUseCase listAllClaimsUseCase;
+    private final UpdateClaimStatusUseCase updateClaimStatusUseCase;
+    private final UserRepository userRepository;
+    private final ClaimWebMapper claimWebMapper;
+    private final Tracer tracer;
+
+    @Override
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;List&lt;AdminClaimResponseDTO&gt;&gt; listAllClaims(
+            Optional&lt;ClaimStatusDTO&gt; status,
+            Optional&lt;UUID&gt; userId) {
+
+<span class="fc" id="L51">        ListAllClaimsQuery query = buildQuery(status, userId);</span>
+<span class="fc" id="L52">        List&lt;Claim&gt; claims = listAllClaimsUseCase.execute(query);</span>
+
+<span class="fc" id="L54">        List&lt;AdminClaimResponseDTO&gt; response = claims.stream()</span>
+<span class="fc" id="L55">                .map(this::toAdminClaimResponse)</span>
+<span class="fc" id="L56">                .toList();</span>
+
+<span class="fc" id="L58">        return ResponseEntity.ok(response);</span>
+    }
+
+    @Override
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;ClaimResponseDTO&gt; updateClaimStatus(
+            UUID claimId,
+            UpdateClaimStatusRequestDTO requestDTO) {
+
+<span class="fc" id="L67">        ClaimStatus newStatus = ClaimStatus.valueOf(requestDTO.getNewStatus().getValue());</span>
+<span class="fc" id="L68">        UUID adminUserId = extractAdminUserId();</span>
+
+<span class="fc" id="L70">        String correlationId = MDC.get(&quot;correlationId&quot;);</span>
+<span class="fc" id="L71">        MDC.put(&quot;userId&quot;, adminUserId.toString());</span>
+<span class="fc" id="L72">        MDC.put(&quot;claimId&quot;, claimId.toString());</span>
+
+        // Add span tags for distributed tracing
+<span class="fc" id="L75">        var currentSpan = tracer.currentSpan();</span>
+<span class="pc bpc" id="L76" title="1 of 2 branches missed.">        if (currentSpan != null) {</span>
+<span class="nc" id="L77">            currentSpan.tag(&quot;userId&quot;, adminUserId.toString());</span>
+<span class="nc" id="L78">            currentSpan.tag(&quot;claimId&quot;, claimId.toString());</span>
+<span class="nc" id="L79">            currentSpan.tag(&quot;role&quot;, &quot;ADMIN&quot;);</span>
+<span class="nc bnc" id="L80" title="All 2 branches missed.">            if (correlationId != null) {</span>
+<span class="nc" id="L81">                currentSpan.tag(&quot;correlationId&quot;, correlationId);</span>
+            }
+        }
+
+<span class="fc" id="L85">        UpdateClaimStatusCommand command = new UpdateClaimStatusCommand(</span>
+                claimId,
+                newStatus,
+                adminUserId
+        );
+
+<span class="fc" id="L91">        Claim updatedClaim = updateClaimStatusUseCase.execute(command);</span>
+<span class="fc" id="L92">        return ResponseEntity.ok(claimWebMapper.toResponse(updatedClaim));</span>
+    }
+
+    /**
+     * Extracts the authenticated admin user ID from Spring Security context.
+     *
+     * @return UUID of the authenticated admin user
+     * @throws IllegalStateException if no authenticated user found
+     */
+    private UUID extractAdminUserId() {
+        var authentication = org.springframework.security.core.context.SecurityContextHolder
+<span class="fc" id="L103">                .getContext().getAuthentication();</span>
+<span class="pc bpc" id="L104" title="1 of 4 branches missed.">        if (authentication != null &amp;&amp; authentication.getPrincipal() instanceof Jwt jwt) {</span>
+<span class="fc" id="L105">            return UUID.fromString(jwt.getSubject());</span>
+        }
+<span class="fc" id="L107">        throw new IllegalStateException(&quot;No authenticated user found in security context&quot;);</span>
+    }
+
+    /**
+     * Builds a domain query object from optional HTTP query parameters.
+     *
+     * @param status optional status filter from query string
+     * @param userId optional userId filter from query string
+     * @return ListAllClaimsQuery with appropriate filters applied
+     */
+    private ListAllClaimsQuery buildQuery(Optional&lt;ClaimStatusDTO&gt; status, Optional&lt;UUID&gt; userId) {
+<span class="fc" id="L118">        Optional&lt;ClaimStatus&gt; statusFilter = status.map(s -&gt; ClaimStatus.valueOf(s.getValue()));</span>
+
+<span class="fc bfc" id="L120" title="All 4 branches covered.">        if (statusFilter.isPresent() &amp;&amp; userId.isPresent()) {</span>
+<span class="fc" id="L121">            return ListAllClaimsQuery.byStatusAndUserId(statusFilter.get(), userId.get());</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">        } else if (statusFilter.isPresent()) {</span>
+<span class="fc" id="L123">            return ListAllClaimsQuery.byStatus(statusFilter.get());</span>
+<span class="fc bfc" id="L124" title="All 2 branches covered.">        } else if (userId.isPresent()) {</span>
+<span class="fc" id="L125">            return ListAllClaimsQuery.byUserId(userId.get());</span>
+        } else {
+<span class="fc" id="L127">            return ListAllClaimsQuery.all();</span>
+        }
+    }
+
+    /**
+     * Maps a domain Claim to AdminClaimResponseDTO with enriched user data.
+     * Fetches user information from UserRepository to include userName and userEmail.
+     * Falls back to &quot;Unknown User&quot; if user not found (data integrity issue).
+     *
+     * @param claim the domain claim to map
+     * @return AdminClaimResponseDTO with claim and user data
+     */
+    private AdminClaimResponseDTO toAdminClaimResponse(Claim claim) {
+<span class="fc" id="L140">        AdminClaimResponseDTO response = new AdminClaimResponseDTO();</span>
+<span class="fc" id="L141">        response.setClaimId(claim.getClaimId());</span>
+<span class="fc" id="L142">        response.setUserId(claim.getUserId());</span>
+<span class="fc" id="L143">        response.setIncidentDate(claim.getIncidentDate());</span>
+<span class="fc" id="L144">        response.setIncidentLocation(claim.getIncidentLocation());</span>
+<span class="fc" id="L145">        response.setDescription(claim.getDescription());</span>
+<span class="fc" id="L146">        response.setClaimAmount(claim.getClaimAmount().doubleValue());</span>
+<span class="fc" id="L147">        response.setStatus(ClaimStatusDTO.fromValue(claim.getStatus().name()));</span>
+<span class="fc" id="L148">        response.setCreatedAt(claimWebMapper.toOffsetDateTime(claim.getCreatedAt()));</span>
+<span class="fc" id="L149">        response.setUpdatedAt(claimWebMapper.toOffsetDateTime(claim.getUpdatedAt()));</span>
+
+<span class="fc" id="L151">        Optional&lt;User&gt; user = userRepository.findById(UserId.of(claim.getUserId()));</span>
+<span class="fc bfc" id="L152" title="All 2 branches covered.">        if (user.isPresent()) {</span>
+<span class="fc" id="L153">            response.setUserName(user.get().getName());</span>
+<span class="fc" id="L154">            response.setUserEmail(user.get().getEmail().value());</span>
+        } else {
+<span class="fc" id="L156">            log.warn(&quot;User not found for claim {}: userId={} - data integrity issue&quot;,</span>
+<span class="fc" id="L157">                    claim.getClaimId(), claim.getUserId());</span>
+<span class="fc" id="L158">            response.setUserName(&quot;Unknown User&quot;);</span>
+<span class="fc" id="L159">            response.setUserEmail(&quot;unknown@example.com&quot;);</span>
+        }
+
+<span class="fc" id="L162">        return response;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

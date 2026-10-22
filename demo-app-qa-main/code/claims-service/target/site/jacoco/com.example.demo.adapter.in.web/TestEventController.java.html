@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TestEventController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">claims-service</a> &gt; <a href="index.source.html" class="el_package">com.example.demo.adapter.in.web</a> &gt; <span class="el_source">TestEventController.java</span></div><h1>TestEventController.java</h1><pre class="source lang-java linenums">package com.example.demo.adapter.in.web;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.context.annotation.Profile;
+import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * Test-only controller for injecting mock CDC events into Kafka.
+ * Enables deterministic E2E testing without waiting for Debezium CDC polling.
+ * Only active when the &quot;test&quot; Spring profile is enabled.
+ */
+@RestController
+@RequestMapping(&quot;/api/test&quot;)
+@Profile(&quot;test&quot;)
+@Tag(name = &quot;Test Utilities&quot;, description = &quot;Test-only endpoints (active in test profile)&quot;)
+public class TestEventController {
+
+    private static final String CDC_TOPIC = &quot;cdc.demo-app.public.claims&quot;;
+
+    private final KafkaTemplate&lt;String, String&gt; kafkaTemplate;
+
+<span class="fc" id="L32">    public TestEventController(KafkaTemplate&lt;String, String&gt; kafkaTemplate) {</span>
+<span class="fc" id="L33">        this.kafkaTemplate = kafkaTemplate;</span>
+<span class="fc" id="L34">    }</span>
+
+    @Operation(
+        summary = &quot;Trigger mock CDC event&quot;,
+        description = &quot;Injects a mock Change Data Capture event into Kafka topic for deterministic E2E testing. &quot; +
+                      &quot;Bypasses Debezium polling delay. Only available in test profile.&quot;,
+        responses = {
+            @ApiResponse(
+                responseCode = &quot;200&quot;,
+                description = &quot;CDC event published successfully&quot;
+            ),
+            @ApiResponse(
+                responseCode = &quot;400&quot;,
+                description = &quot;Invalid request body&quot;,
+                content = @Content(schema = @Schema(hidden = true))
+            )
+        }
+    )
+    @PostMapping(&quot;/trigger-event&quot;)
+    public ResponseEntity&lt;Void&gt; triggerCDCEvent(
+            @Valid @RequestBody MockCDCEventRequest request) {
+<span class="fc" id="L55">        String payload = buildMockCDCPayload(request);</span>
+<span class="fc" id="L56">        kafkaTemplate.send(CDC_TOPIC, request.claimId(), payload);</span>
+<span class="fc" id="L57">        return ResponseEntity.ok().build();</span>
+    }
+
+    private String buildMockCDCPayload(MockCDCEventRequest request) {
+<span class="fc" id="L61">        long timestamp = System.currentTimeMillis();</span>
+<span class="fc" id="L62">        return &quot;&quot;&quot;</span>
+            {
+              &quot;op&quot;: &quot;u&quot;,
+              &quot;after&quot;: {
+                &quot;id&quot;: &quot;%s&quot;,
+                &quot;status&quot;: &quot;%s&quot;,
+                &quot;updated_at&quot;: %d
+              },
+              &quot;ts_ms&quot;: %d
+            }
+<span class="fc" id="L72">            &quot;&quot;&quot;.formatted(request.claimId(), request.newStatus(), timestamp, timestamp);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

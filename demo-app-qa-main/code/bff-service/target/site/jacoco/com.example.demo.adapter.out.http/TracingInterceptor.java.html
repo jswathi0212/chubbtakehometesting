@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TracingInterceptor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bff-service</a> &gt; <a href="index.source.html" class="el_package">com.example.demo.adapter.out.http</a> &gt; <span class="el_source">TracingInterceptor.java</span></div><h1>TracingInterceptor.java</h1><pre class="source lang-java linenums">package com.example.demo.adapter.out.http;
+
+import brave.Tracing;
+import brave.propagation.TraceContext;
+import okhttp3.Interceptor;
+import okhttp3.Request;
+import okhttp3.Response;
+import org.springframework.stereotype.Component;
+
+import java.io.IOException;
+
+/**
+ * OkHttp interceptor that propagates Brave/Zipkin trace context headers
+ * to downstream services, enabling distributed tracing in Zipkin.
+ */
+@Component
+public class TracingInterceptor implements Interceptor {
+
+    private final Tracing tracing;
+
+<span class="fc" id="L21">    public TracingInterceptor(Tracing tracing) {</span>
+<span class="fc" id="L22">        this.tracing = tracing;</span>
+<span class="fc" id="L23">    }</span>
+
+    @Override
+    public Response intercept(Chain chain) throws IOException {
+<span class="fc" id="L27">        Request originalRequest = chain.request();</span>
+
+<span class="fc" id="L29">        TraceContext context = tracing.currentTraceContext().get();</span>
+<span class="fc bfc" id="L30" title="All 2 branches covered.">        if (context == null) {</span>
+<span class="fc" id="L31">            return chain.proceed(originalRequest);</span>
+        }
+
+<span class="fc" id="L34">        Request.Builder builder = originalRequest.newBuilder();</span>
+
+        // Inject B3 propagation headers
+<span class="fc" id="L37">        tracing.propagation().injector(Request.Builder::header).inject(context, builder);</span>
+
+<span class="fc" id="L39">        return chain.proceed(builder.build());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

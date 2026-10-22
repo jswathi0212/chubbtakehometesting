@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">claims-service</a> &gt; <a href="index.source.html" class="el_package">com.example.demo.adapter.in.web</a> &gt; <span class="el_source">UserController.java</span></div><h1>UserController.java</h1><pre class="source lang-java linenums">package com.example.demo.adapter.in.web;
+
+import com.example.claims.adapter.in.web.generated.UsersApi;
+import com.example.claims.adapter.in.web.generated.model.CreateUserRequestDTO;
+import com.example.claims.adapter.in.web.generated.model.UserResponseDTO;
+import com.example.claims.adapter.in.web.generated.model.UserRoleDTO;
+import com.example.demo.user.domain.Email;
+import com.example.demo.user.domain.User;
+import com.example.demo.user.domain.UserId;
+import com.example.demo.user.domain.UserRepository;
+import com.example.demo.user.domain.UserRole;
+import com.example.demo.user.adapter.out.persistence.UserJpaRepository;
+import com.example.demo.application.exceptions.UserNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.List;
+import java.util.UUID;
+
+@RestController
+public class UserController implements UsersApi {
+
+<span class="fc" id="L30">    private static final Logger LOG = LoggerFactory.getLogger(UserController.class);</span>
+
+    private final UserRepository userRepository;
+    private final UserJpaRepository userJpaRepository;
+
+<span class="fc" id="L35">    public UserController(UserRepository userRepository, UserJpaRepository userJpaRepository) {</span>
+<span class="fc" id="L36">        this.userRepository = userRepository;</span>
+<span class="fc" id="L37">        this.userJpaRepository = userJpaRepository;</span>
+<span class="fc" id="L38">    }</span>
+
+    @Override
+    @PreAuthorize(&quot;hasRole('ADMIN')&quot;)
+    public ResponseEntity&lt;List&lt;UserResponseDTO&gt;&gt; listAllUsers() {
+<span class="fc" id="L43">        List&lt;UserResponseDTO&gt; users = userRepository.findAll().stream()</span>
+<span class="fc" id="L44">                .map(this::toUserResponse)</span>
+<span class="fc" id="L45">                .toList();</span>
+<span class="fc" id="L46">        return ResponseEntity.ok(users);</span>
+    }
+
+    @Override
+    public ResponseEntity&lt;UserResponseDTO&gt; createUser(CreateUserRequestDTO request) {
+        // Use userId from request (passed by BFF, which gets it from Keycloak)
+        // Note: BFF calls this with service account token, so JWT subject != new user ID
+<span class="fc" id="L53">        var userId = UserId.of(request.getUserId());</span>
+<span class="fc" id="L54">        var email = Email.of(request.getEmail());</span>
+
+        // If email already exists, handle idempotent provisioning
+<span class="fc" id="L57">        var existing = userRepository.findByEmail(email);</span>
+<span class="pc bpc" id="L58" title="1 of 2 branches missed.">        if (existing.isPresent()) {</span>
+<span class="nc" id="L59">            var existingUser = existing.get();</span>
+<span class="nc bnc" id="L60" title="All 2 branches missed.">            if (existingUser.getUserId().equals(userId)) {</span>
+                // Same UUID — true idempotent call
+<span class="nc" id="L62">                return ResponseEntity.status(HttpStatus.CONFLICT).body(toUserResponse(existingUser));</span>
+            }
+            // UUID changed (e.g. Keycloak was recreated) — update to new Keycloak ID
+<span class="nc" id="L65">            LOG.info(&quot;User email {} exists with old ID {}, updating to new Keycloak ID {}&quot;,</span>
+<span class="nc" id="L66">                    email.value(), existingUser.getUserId().value(), userId.value());</span>
+<span class="nc" id="L67">            userJpaRepository.updateUserId(existingUser.getUserId().value(), userId.value());</span>
+<span class="nc" id="L68">            userJpaRepository.flush();</span>
+<span class="nc" id="L69">            var updated = userJpaRepository.findById(userId.value())</span>
+<span class="nc" id="L70">                    .orElseThrow(() -&gt; new IllegalStateException(&quot;User ID update failed&quot;));</span>
+<span class="nc" id="L71">            return ResponseEntity.status(HttpStatus.CREATED).body(toJpaUserResponse(updated));</span>
+        }
+
+<span class="fc" id="L74">        var createdAt = Instant.now();</span>
+
+<span class="fc" id="L76">        var user = new User(</span>
+                userId,
+<span class="fc" id="L78">                request.getName(),</span>
+                email,
+<span class="fc" id="L80">                UserRole.valueOf(request.getRole().getValue()),</span>
+                createdAt
+        );
+
+<span class="fc" id="L84">        userRepository.save(user);</span>
+
+<span class="fc" id="L86">        var response = new UserResponseDTO();</span>
+<span class="fc" id="L87">        response.setUserId(userId.value());</span>
+<span class="fc" id="L88">        response.setEmail(user.getEmail().value());</span>
+<span class="fc" id="L89">        response.setName(user.getName());</span>
+<span class="fc" id="L90">        response.setRole(UserRoleDTO.fromValue(user.getRole().name()));</span>
+<span class="fc" id="L91">        response.setCreatedAt(OffsetDateTime.ofInstant(createdAt, ZoneOffset.UTC));</span>
+
+<span class="fc" id="L93">        return ResponseEntity.status(HttpStatus.CREATED).body(response);</span>
+    }
+
+    @Override
+    public ResponseEntity&lt;UserResponseDTO&gt; getUser(UUID userId) {
+<span class="fc" id="L98">        var user = userRepository.findById(UserId.of(userId))</span>
+<span class="fc" id="L99">                .orElseThrow(() -&gt; new UserNotFoundException(&quot;User not found&quot;));</span>
+<span class="fc" id="L100">        return ResponseEntity.ok(toUserResponse(user));</span>
+    }
+
+    private UserResponseDTO toUserResponse(User user) {
+<span class="fc" id="L104">        var response = new UserResponseDTO();</span>
+<span class="fc" id="L105">        response.setUserId(user.getUserId().value());</span>
+<span class="fc" id="L106">        response.setEmail(user.getEmail().value());</span>
+<span class="fc" id="L107">        response.setName(user.getName());</span>
+<span class="fc" id="L108">        response.setRole(UserRoleDTO.fromValue(user.getRole().name()));</span>
+<span class="fc" id="L109">        response.setCreatedAt(OffsetDateTime.ofInstant(user.getCreatedAt(), ZoneOffset.UTC));</span>
+<span class="fc" id="L110">        return response;</span>
+    }
+
+    private UserResponseDTO toJpaUserResponse(com.example.demo.user.adapter.out.persistence.UserJpaEntity entity) {
+<span class="nc" id="L114">        var response = new UserResponseDTO();</span>
+<span class="nc" id="L115">        response.setUserId(entity.getId());</span>
+<span class="nc" id="L116">        response.setEmail(entity.getEmail());</span>
+<span class="nc" id="L117">        response.setName(entity.getName());</span>
+<span class="nc" id="L118">        response.setRole(UserRoleDTO.fromValue(entity.getRole().name()));</span>
+<span class="nc" id="L119">        response.setCreatedAt(OffsetDateTime.ofInstant(entity.getCreatedAt(), ZoneOffset.UTC));</span>
+<span class="nc" id="L120">        return response;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>
